@@ -12,10 +12,18 @@ import {
   WifiOff,
   CheckSquare,
   AlertCircle,
+  Waves,
+  FileText,
 } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
-import { farmStats, recentWarnings, currentUser } from "../data/dashboardData";
+import {
+  farmStats,
+  recentWarnings,
+  currentUser,
+  farmLocations,
+  recentActivity,
+} from "../data/dashboardData";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -100,7 +108,9 @@ function Dashboard() {
           <div className="stat-card">
             <div className="stat-card-top">
               <span>Registered farms</span>
-              <Building2 size={18} />
+              <span className="icon-box icon-box-green">
+                <Building2 size={18} />
+              </span>
             </div>
             <h2>{farmStats.registered}</h2>
             <p>Total participating shrimp farms</p>
@@ -109,7 +119,9 @@ function Dashboard() {
           <div className="stat-card">
             <div className="stat-card-top">
               <span>Active farms</span>
-              <Activity size={18} />
+              <span className="icon-box icon-box-green">
+                <Activity size={18} />
+              </span>
             </div>
             <h2>{farmStats.active}</h2>
             <p>Currently in operation</p>
@@ -118,7 +130,9 @@ function Dashboard() {
           <div className="stat-card">
             <div className="stat-card-top">
               <span>Offline</span>
-              <WifiOff size={18} />
+              <span className="icon-box icon-box-gray">
+                <WifiOff size={18} />
+              </span>
             </div>
             <h2>{farmStats.offline}</h2>
             <p>Not transmitting to cloud</p>
@@ -131,7 +145,9 @@ function Dashboard() {
             <div className="stat-card">
               <div className="stat-card-top">
                 <span>Normal</span>
-                <CheckSquare size={18} />
+                <span className="icon-box icon-box-green">
+                  <CheckSquare size={18} />
+                </span>
               </div>
               <h2>{farmStats.normal}</h2>
               <p>Within acceptable water quality</p>
@@ -140,7 +156,9 @@ function Dashboard() {
             <div className="stat-card">
               <div className="stat-card-top">
                 <span>Critical</span>
-                <AlertCircle size={18} />
+                <span className="icon-box icon-box-red">
+                  <AlertCircle size={18} />
+                </span>
               </div>
               <h2>{farmStats.critical}</h2>
               <p>Requires immediate attention</p>
@@ -175,7 +193,57 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Part 2 (map + recent monitoring activity) goes below — coming next */}
+        {/* MAP */}
+        <div className="map-card">
+        <div className="map-card-header">
+            <MapPin size={16} />
+            <span>Calapan City overview</span>
+        </div>
+
+        <div className="map-placeholder">
+            {/* This is a placeholder map. Swap for Google Maps API later —
+                each pin below reads its position and status straight from farmLocations. */}
+            {farmLocations.map((farm) => (
+            <div
+                key={farm.id}
+                className={"map-pin map-pin-" + farm.status}
+                style={{ top: farm.top, left: farm.left }}
+                title={farm.name}
+            />
+            ))}
+
+            <div className="map-legend">
+            <span><span className="legend-dot legend-normal" /> Normal</span>
+            <span><span className="legend-dot legend-critical" /> Critical</span>
+            <span><span className="legend-dot legend-offline" /> Offline</span>
+            </div>
+        </div>
+        </div>
+
+        {/* RECENT MONITORING ACTIVITY */}
+        <div className="activity-card">
+        <div className="activity-header">
+            <div>
+            <h3>Recent monitoring activity</h3>
+            <p>Latest monitoring activities from participating farms</p>
+            </div>
+            <a href="#">Open multi-farm view</a>
+        </div>
+
+        {recentActivity.map((item) => (
+            <div className="activity-item" key={item.id}>
+            <span className="icon-box icon-box-green">
+                <Waves size={16} />
+            </span>
+            <div className="activity-text">
+                <p>
+                <strong>{item.farm}</strong> · {item.action}
+                </p>
+            </div>
+            <span className="activity-time">{item.time}</span>
+            </div>
+        ))}
+        </div>
       </main>
     </div>
   );

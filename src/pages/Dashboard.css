@@ -306,3 +306,154 @@
   color: #9ca3af;
   margin-top: 4px;
 }
+
+.icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-box-green {
+  background: #e6f6ee;
+  color: #1f9d6e;
+}
+
+.icon-box-gray {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.icon-box-red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* MAP */
+.map-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.map-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.map-placeholder {
+  position: relative;
+  height: 260px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e6f6ee 0%, #cdeaf0 60%, #a9dceb 100%);
+  overflow: hidden;
+}
+
+.map-pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+  transform: translate(-50%, -50%);
+}
+
+.map-pin-normal {
+  background: #1f9d6e;
+}
+
+.map-pin-critical {
+  background: #dc2626;
+}
+
+.map-pin-offline {
+  background: #6b7280;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: white;
+  border-radius: 999px;
+  padding: 6px 14px;
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: #374151;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.legend-normal { background: #1f9d6e; }
+.legend-critical { background: #dc2626; }
+.legend-offline { background: #6b7280; }
+
+/* RECENT ACTIVITY */
+.activity-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.activity-header h3 {
+  font-size: 14px;
+  color: #111827;
+}
+
+.activity-header p {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.activity-header a {
+  font-size: 12px;
+  color: #0d5c46;
+  text-decoration: none;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #f3f4f6;
+}
+
+.activity-text p {
+  font-size: 13px;
+  color: #374151;
+}
+
+.activity-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
