@@ -1,11 +1,11 @@
-import { NavLink } from "react-router-dom";
+import { useState, useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutGrid,
   Activity,
   MapPin,
   AlertTriangle,
   BarChart2,
-  Settings,
   LogOut,
   Bell,
   Building2,
@@ -13,18 +13,19 @@ import {
   CheckSquare,
   AlertCircle,
   Waves,
-  FileText,
+  Layers,
 } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
-import {
-  farmStats,
-  recentWarnings,
-  currentUser,
-  farmLocations,
-  recentActivity,
-} from "../data/dashboardData";
+import { farmStats, recentWarnings, recentActivity } from "../data/dashboardData";
+import { farms } from "../data/farmsData";
+import { getOverallStatus } from "../data/thresholds";
+import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import "./Dashboard.css";
+import Sidebar from "../components/Sidebar";
+
+const statusColor = { normal: "#1f9d6e", critical: "#dc2626", moderate: "#f59e0b", offline: "#6b7280" };
+const CALAPAN_CENTER = { lat: 13.4117, lng: 121.1803 };
 
 function Dashboard() {
   const navItems = [
@@ -35,54 +36,60 @@ function Dashboard() {
     { label: "Reports and Analytics", icon: BarChart2, path: "/reports" },
   ];
 
+  const navigate = useNavigate();
+
+    const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
+    const currentUser = storedUser || {
+    name: "Guest",
+    role: "Unknown",
+    initials: "?",
+    };
+
+    const handleSignOut = () => {
+    localStorage.removeItem("hyqual_user");
+    navigate("/login");
+    };
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+  });
+
+  const mapRef = useRef(null);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [statusFilter, setStatusFilter] = useState(null);
+
+  const farmsWithStatus = farms.map((farm) => {
+    const mainPond = farm.ponds[0];
+    const status = getOverallStatus({
+      temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal,
+    });
+    return { ...farm, status };
+  });
+
+  const visiblePins = farmsWithStatus.filter((farm) => {
+    if (!showOverlay) return false;
+    if (statusFilter && farm.status !== statusFilter) return false;
+    return true;
+  });
+
+  const onMapLoad = (map) => { mapRef.current = map; };
+
+  const handlePinClick = (farm) => {
+    if (mapRef.current) {
+      mapRef.current.panTo({ lat: farm.lat, lng: farm.lng });
+      mapRef.current.setZoom(15);
+    }
+  };
+  
+  const handleLegendClick = (status) => {
+    // clicking the same status again turns the filter back off
+    setStatusFilter((prev) => (prev === status ? null : status));
+  };
+
   return (
     <div className="dashboard-layout">
       {/* SIDEBAR */}
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <div className="sidebar-logo">
-            <img src={logoIcon} alt="HyQual icon" className="sidebar-logo-icon" />
-            <img src={logoText} alt="HyQual" className="sidebar-logo-text" />
-          </div>
-
-          <p className="sidebar-role-label">BFAR ADMINISTRATOR</p>
-
-          <nav>
-            {navItems.map((item) => (
-              <NavLink
-                key={item.label}
-                to={item.path}
-                className={({ isActive }) =>
-                  "nav-item" + (isActive ? " nav-item-active" : "")
-                }
-              >
-                <item.icon size={18} />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        <div className="sidebar-bottom">
-          <a href="#" className="nav-item">
-            <Settings size={18} />
-            <span>Settings</span>
-          </a>
-
-          <div className="user-card">
-            <div className="user-avatar">{currentUser.initials}</div>
-            <div>
-              <p className="user-name">{currentUser.name}</p>
-              <p className="user-role">{currentUser.role}</p>
-            </div>
-          </div>
-
-          <a href="#" className="nav-item sign-out">
-            <LogOut size={18} />
-            <span>Sign out</span>
-          </a>
-        </div>
-      </aside>
+        <Sidebar />
 
       {/* MAIN CONTENT */}
       <main className="dashboard-main">
@@ -103,9 +110,9 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* STAT CARDS ROW 1 */}
-        <div className="stat-cards-row">
-          <div className="stat-card">
+        {/* MAIN GRID: 3 columns x 3 rows */}
+        <div className="dashboard-grid">
+          <div className="stat-card grid-registered">
             <div className="stat-card-top">
               <span>Registered farms</span>
               <span className="icon-box icon-box-green">
@@ -116,7 +123,7 @@ function Dashboard() {
             <p>Total participating shrimp farms</p>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card grid-active">
             <div className="stat-card-top">
               <span>Active farms</span>
               <span className="icon-box icon-box-green">
@@ -127,7 +134,7 @@ function Dashboard() {
             <p>Currently in operation</p>
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card grid-offline">
             <div className="stat-card-top">
               <span>Offline</span>
               <span className="icon-box icon-box-gray">
@@ -137,35 +144,41 @@ function Dashboard() {
             <h2>{farmStats.offline}</h2>
             <p>Not transmitting to cloud</p>
           </div>
-        </div>
 
-        {/* STAT CARDS ROW 2 + WARNINGS PANEL */}
-        <div className="stat-cards-row row-with-panel">
-          <div className="stat-cards-col">
-            <div className="stat-card">
-              <div className="stat-card-top">
-                <span>Normal</span>
-                <span className="icon-box icon-box-green">
-                  <CheckSquare size={18} />
-                </span>
-              </div>
-              <h2>{farmStats.normal}</h2>
-              <p>Within acceptable water quality</p>
+          <div className="stat-card grid-normal">
+            <div className="stat-card-top">
+              <span>Normal</span>
+              <span className="icon-box icon-box-green">
+                <CheckSquare size={18} />
+              </span>
             </div>
-
-            <div className="stat-card">
-              <div className="stat-card-top">
-                <span>Critical</span>
-                <span className="icon-box icon-box-red">
-                  <AlertCircle size={18} />
-                </span>
-              </div>
-              <h2>{farmStats.critical}</h2>
-              <p>Requires immediate attention</p>
-            </div>
+            <h2>{farmStats.normal}</h2>
+            <p>Within acceptable water quality</p>
           </div>
 
-          <div className="warnings-panel">
+          <div className="stat-card grid-critical">
+            <div className="stat-card-top">
+              <span>Critical</span>
+              <span className="icon-box icon-box-red">
+                <AlertCircle size={18} />
+              </span>
+            </div>
+            <h2>{farmStats.critical}</h2>
+            <p>Requires immediate attention</p>
+          </div>
+
+          <div className="stat-card grid-moderate">
+            <div className="stat-card-top">
+              <span>Moderate</span>
+              <span className="icon-box icon-box-orange">
+                <AlertTriangle size={18} />
+              </span>
+            </div>
+            <h2>{farmStats.moderate}</h2>
+            <p>Requires closer monitoring</p>
+          </div>
+
+          <div className="warnings-panel grid-warnings">
             <div className="warnings-panel-header">
               <h3>Recent early warnings</h3>
               <a href="#">Open early warning</a>
@@ -191,58 +204,114 @@ function Dashboard() {
               </div>
             ))}
           </div>
-        </div>
 
-        {/* MAP */}
-        <div className="map-card">
-        <div className="map-card-header">
-            <MapPin size={16} />
-            <span>Calapan City overview</span>
-        </div>
+          <div className="map-card grid-map">
+            <div className="map-card-header">
+              <div className="map-card-title">
+                <MapPin size={16} />
+                <span>Calapan City overview</span>
+              </div>
 
-        <div className="map-placeholder">
-            {/* This is a placeholder map. Swap for Google Maps API later —
-                each pin below reads its position and status straight from farmLocations. */}
-            {farmLocations.map((farm) => (
-            <div
-                key={farm.id}
-                className={"map-pin map-pin-" + farm.status}
-                style={{ top: farm.top, left: farm.left }}
-                title={farm.name}
-            />
-            ))}
-
-            <div className="map-legend">
-            <span><span className="legend-dot legend-normal" /> Normal</span>
-            <span><span className="legend-dot legend-critical" /> Critical</span>
-            <span><span className="legend-dot legend-offline" /> Offline</span>
+              <button
+                className={"overlay-btn" + (showOverlay ? " overlay-btn-active" : "")}
+                onClick={() => setShowOverlay(!showOverlay)}
+              >
+                <Layers size={14} />
+                Status overlay
+              </button>
             </div>
-        </div>
+
+            <div className="map-placeholder">
+              {visiblePins.map((farm) => (
+                <div
+                  key={farm.id}
+                  className={"map-pin map-pin-" + farm.status}
+                  style={{ top: farm.top, left: farm.left }}
+                  title={farm.name}
+                />
+              ))}
+
+              <div className="map-placeholder">
+                {isLoaded && (
+                  <GoogleMap
+                    mapContainerStyle={{ width: "100%", height: "100%" }}
+                    center={CALAPAN_CENTER}
+                    zoom={13}
+                    onLoad={onMapLoad}
+                    options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+                  >
+                    {visiblePins.map((farm) => (
+                      <Marker
+                        key={farm.id}
+                        position={{ lat: farm.lat, lng: farm.lng }}
+                        onClick={() => handlePinClick(farm)}
+                        icon={{
+                          path: window.google.maps.SymbolPath.CIRCLE,
+                          fillColor: statusColor[farm.status],
+                          fillOpacity: 1,
+                          strokeColor: "#ffffff",
+                          strokeWeight: 2,
+                          scale: 8,
+                        }}
+                      />
+                    ))}
+                  </GoogleMap>
+                )}
+
+                <div className="map-legend">
+                  <button
+                    className={"legend-btn" + (statusFilter === "normal" ? " legend-btn-active" : "")}
+                    onClick={() => handleLegendClick("normal")}
+                  >
+                    <span className="legend-dot legend-normal" /> Normal
+                  </button>
+                  <button
+                    className={"legend-btn" + (statusFilter === "critical" ? " legend-btn-active" : "")}
+                    onClick={() => handleLegendClick("critical")}
+                  >
+                    <span className="legend-dot legend-critical" /> Critical
+                  </button>
+                  <button
+                    className={"legend-btn" + (statusFilter === "moderate" ? " legend-btn-active" : "")}
+                    onClick={() => handleLegendClick("moderate")}
+                  >
+                    <span className="legend-dot legend-moderate" /> Moderate
+                  </button>
+                  <button
+                    className={"legend-btn" + (statusFilter === "offline" ? " legend-btn-active" : "")}
+                    onClick={() => handleLegendClick("offline")}
+                  >
+                    <span className="legend-dot legend-offline" /> Offline
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* RECENT MONITORING ACTIVITY */}
         <div className="activity-card">
-        <div className="activity-header">
+          <div className="activity-header">
             <div>
-            <h3>Recent monitoring activity</h3>
-            <p>Latest monitoring activities from participating farms</p>
+              <h3>Recent monitoring activity</h3>
+              <p>Latest monitoring activities from participating farms</p>
             </div>
             <a href="#">Open multi-farm view</a>
-        </div>
+          </div>
 
-        {recentActivity.map((item) => (
+          {recentActivity.map((item) => (
             <div className="activity-item" key={item.id}>
-            <span className="icon-box icon-box-green">
+              <span className="icon-box icon-box-green">
                 <Waves size={16} />
-            </span>
-            <div className="activity-text">
+              </span>
+              <div className="activity-text">
                 <p>
-                <strong>{item.farm}</strong> · {item.action}
+                  <strong>{item.farm}</strong> · {item.action}
                 </p>
+              </div>
+              <span className="activity-time">{item.time}</span>
             </div>
-            <span className="activity-time">{item.time}</span>
-            </div>
-        ))}
+          ))}
         </div>
       </main>
     </div>

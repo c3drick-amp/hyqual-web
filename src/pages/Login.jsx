@@ -5,17 +5,32 @@ import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
 import "./Login.css";
 
+// TEMPORARY hardcoded account — replace with real Firebase Authentication later
+const DUMMY_ACCOUNT = {
+  email: "juandelacruz@gmail.com",
+  password: "password123",
+  name: "Juan Dela Cruz",
+  role: "BFAR Administrator",
+  initials: "JD",
+};
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: replace with real Firebase Authentication later
-    // Password will be sent securely and hashed on the backend (Firebase Auth handles this automatically)
-    navigate("/dashboard");
+
+    if (email === DUMMY_ACCOUNT.email && password === DUMMY_ACCOUNT.password) {
+      // Save logged-in user info so Dashboard can read it
+      localStorage.setItem("hyqual_user", JSON.stringify(DUMMY_ACCOUNT));
+      navigate("/dashboard");
+    } else {
+      setError("Invalid email or password.");
+    }
   };
 
   return (
@@ -59,6 +74,8 @@ function Login() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+
+          {error && <p className="login-error">{error}</p>}
 
           <button type="submit" className="sign-in-btn">
             Sign In <ArrowRight size={18} />
