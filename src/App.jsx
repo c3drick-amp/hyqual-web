@@ -4,6 +4,8 @@ import Dashboard from "./pages/Dashboard";
 import MultiFarmMonitoring from "./pages/MultiFarmMonitoring";
 import FarmDetails from "./pages/FarmDetails";
 import FarmLocationMap from "./pages/FarmLocationMap";
+import Alerts from "./pages/Alerts";
+import ReportsAnalytics from "./pages/ReportsAnalytics";
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
         <Route path="/multi-farm" element={<MultiFarmMonitoring />} />
         <Route path="/multi-farm/:farmId" element={<FarmDetails />} />
         <Route path="/farm-map" element={<FarmLocationMap />} />
+        <Route path="/alerts" element={<Alerts />} />
+        <Route path="/reports" element={<ReportsAnalytics />} />
       </Routes>
     </BrowserRouter>
   );
