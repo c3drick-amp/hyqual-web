@@ -6,6 +6,7 @@ import FarmDetails from "./pages/FarmDetails";
 import FarmLocationMap from "./pages/FarmLocationMap";
 import Alerts from "./pages/Alerts";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/farm-map" element={<FarmLocationMap />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/reports" element={<ReportsAnalytics />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

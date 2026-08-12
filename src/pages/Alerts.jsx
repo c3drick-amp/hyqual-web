@@ -62,9 +62,9 @@ function Alerts() {
                   {f.label}
                 </button>
               ))}
-              <button className="time-filter-btn custom-btn">
-                <Calendar size={14} /> Custom
-              </button>
+                <button className="time-filter-btn custom-btn" onClick={() => setShowDateModal(true)}>
+                    <Calendar size={14} /> Custom
+                </button>
             </div>
           </div>
 
@@ -121,6 +121,15 @@ function Alerts() {
               </div>
             </div>
           </div>
+          {showDateModal && (
+            <DateRangeModal
+                onClose={() => setShowDateModal(false)}
+                onApply={(from, to) => {
+                setCustomRange({ from, to });
+                setActiveTimeFilter("custom");
+                }}
+            />
+            )}
         </Modal>
       )}
     </div>

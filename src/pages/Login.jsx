@@ -9,11 +9,21 @@ import "./Login.css";
 const DUMMY_ACCOUNT = {
   email: "juandelacruz@gmail.com",
   password: "password123",
-  name: "Juan Dela Cruz",
+  firstName: "Juan",
+  middleName: "Santos",
+  lastName: "Dela Cruz",
+  mobile: "+63 900 000 0000",
+  street: "",
+  barangay: "",
+  city: "Calapan",
   role: "BFAR Administrator",
-  initials: "JD",
+  get name() {
+    return `${this.firstName} ${this.lastName}`;
+  },
+  get initials() {
+    return `${this.firstName[0]}${this.lastName[0]}`;
+  },
 };
-
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -93,6 +93,15 @@
   flex-shrink: 0;
 }
 
+
+.user-card {
+  cursor: pointer;
+}
+
+.user-card:hover {
+  background: #f9fafb;
+}
+
 .user-name {
   font-size: 13px;
   font-weight: 600;

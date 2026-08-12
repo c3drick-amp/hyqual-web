@@ -47,7 +47,7 @@ function Sidebar() {
       </div>
 
       <div className="sidebar-bottom">
-        <div className="user-card">
+        <div className="user-card" onClick={() => navigate("/profile")}>
           <div className="user-avatar">{currentUser.initials}</div>
           <div>
             <p className="user-name">{currentUser.name}</p>
