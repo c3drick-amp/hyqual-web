@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutGrid, Activity, MapPin, AlertTriangle, BarChart2, LogOut } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
+import { getFullName, getInitials } from "../utils/userHelpers";
 import "./Sidebar.css";
 
 const navItems = [
@@ -15,7 +16,7 @@ const navItems = [
 function Sidebar() {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
-  const currentUser = storedUser || { name: "Guest", role: "Unknown", initials: "?" };
+  const currentUser = storedUser || { role: "Unknown" };
 
   const handleSignOut = () => {
     localStorage.removeItem("hyqual_user");
@@ -48,9 +49,9 @@ function Sidebar() {
 
       <div className="sidebar-bottom">
         <div className="user-card" onClick={() => navigate("/profile")}>
-          <div className="user-avatar">{currentUser.initials}</div>
+          <div className="user-avatar">{getFullName(currentUser)}</div>
           <div>
-            <p className="user-name">{currentUser.name}</p>
+            <p className="user-name">{getInitials(currentUser)}</p>
             <p className="user-role">{currentUser.role}</p>
           </div>
         </div>

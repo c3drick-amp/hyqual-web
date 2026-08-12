@@ -5,25 +5,34 @@ import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
 import "./Login.css";
 
-// TEMPORARY hardcoded account — replace with real Firebase Authentication later
-const DUMMY_ACCOUNT = {
-  email: "juandelacruz@gmail.com",
-  password: "password123",
-  firstName: "Juan",
-  middleName: "Santos",
-  lastName: "Dela Cruz",
-  mobile: "+63 900 000 0000",
-  street: "",
-  barangay: "",
-  city: "Calapan",
-  role: "BFAR Administrator",
-  get name() {
-    return `${this.firstName} ${this.lastName}`;
+// TEMPORARY hardcoded accounts — replace with real Firebase Authentication later
+const ACCOUNTS = [
+  {
+    email: "juandelacruz@gmail.com",
+    password: "password123",
+    firstName: "Juan",
+    middleName: "Santos",
+    lastName: "Dela Cruz",
+    mobile: "+63 900 000 0000",
+    street: "",
+    barangay: "",
+    city: "Calapan",
+    role: "BFAR Administrator",
   },
-  get initials() {
-    return `${this.firstName[0]}${this.lastName[0]}`;
+  {
+    email: "antoniocruz@gmail.com",
+    password: "password123",
+    firstName: "Antonio",
+    middleName: "Ramon",
+    lastName: "Cruz",
+    mobile: "+63 908 724 1567",
+    street: "XYZ St.",
+    barangay: "Libis",
+    city: "Calapan",
+    role: "Superadmin",
   },
-};
+];
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,15 +43,23 @@ function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (email === DUMMY_ACCOUNT.email && password === DUMMY_ACCOUNT.password) {
-      // Save logged-in user info so Dashboard can read it
-      localStorage.setItem("hyqual_user", JSON.stringify(DUMMY_ACCOUNT));
-      navigate("/dashboard");
+    const matchedAccount = ACCOUNTS.find(
+      (acc) => acc.email === email && acc.password === password
+    );
+
+    if (matchedAccount) {
+      const { password, ...userWithoutPassword } = matchedAccount;
+      localStorage.setItem("hyqual_user", JSON.stringify(userWithoutPassword));
+
+      if (matchedAccount.role === "Superadmin") {
+        navigate("/superadmin/overview");
+      } else {
+        navigate("/dashboard");
+      }
     } else {
       setError("Invalid email or password.");
     }
   };
-
   return (
     <div className="login-page">
       <div className="login-card">
