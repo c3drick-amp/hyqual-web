@@ -9,6 +9,7 @@ import ReportsAnalytics from "./pages/ReportsAnalytics";
 import Profile from "./pages/Profile";
 import SuperadminOverview from "./pages/superadmin/SuperadminOverview";
 import UserManagement from "./pages/superadmin/UserManagement";
+import ArchivedAccounts from "./pages/superadmin/ArchivedAccounts";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/superadmin/overview" element={<SuperadminOverview />} />
         <Route path="/superadmin/users" element={<UserManagement />} />
+        <Route path="/superadmin/users/archived" element={<ArchivedAccounts />} />
       </Routes>
     </BrowserRouter>
   );
