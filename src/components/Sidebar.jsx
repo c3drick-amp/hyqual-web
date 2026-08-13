@@ -49,9 +49,9 @@ function Sidebar() {
 
       <div className="sidebar-bottom">
         <div className="user-card" onClick={() => navigate("/profile")}>
-          <div className="user-avatar">{getFullName(currentUser)}</div>
+          <div className="user-avatar">{getInitials(currentUser)}</div>
           <div>
-            <p className="user-name">{getInitials(currentUser)}</p>
+            <p className="user-name">{getFullName(currentUser)}</p>
             <p className="user-role">{currentUser.role}</p>
           </div>
         </div>
