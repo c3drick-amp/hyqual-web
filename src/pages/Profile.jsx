@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
-import Sidebar from "../components/Sidebar";
 import "./Profile.css";
+import Sidebar from "../components/Sidebar";
+import SuperadminSidebar from "../components/SuperadminSidebar";
 
 function Profile() {
   const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
+  const isSuperadmin = storedUser?.role === "Superadmin";
 
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
@@ -48,7 +50,7 @@ function Profile() {
 
   return (
     <div className="dashboard-layout">
-      <Sidebar />
+      {isSuperadmin ? <SuperadminSidebar /> : <Sidebar />}
 
       <main className="dashboard-main">
         <div className="dashboard-header">

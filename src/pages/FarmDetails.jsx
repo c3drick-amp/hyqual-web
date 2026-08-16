@@ -59,7 +59,12 @@ function FarmDetails() {
               temp: pond.temp, ph: pond.ph, do: pond.do, sal: pond.sal,
             });
             return (
-              <div className={"pond-card pond-card-" + pondStatus} key={pond.id}>
+              <div
+                className={"pond-card pond-card-" + pondStatus}
+                key={pond.id}
+                onClick={() => navigate(`/multi-farm/${farm.id}/${pond.id}`)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="pond-card-header">
                   <span className="pond-title">
                     <Sprout size={16} /> {pond.name}

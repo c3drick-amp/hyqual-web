@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import MultiFarmMonitoring from "./pages/MultiFarmMonitoring";
 import FarmDetails from "./pages/FarmDetails";
+import PondDetails from "./pages/PondDetails";
 import FarmLocationMap from "./pages/FarmLocationMap";
 import Alerts from "./pages/Alerts";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
@@ -24,6 +25,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/multi-farm" element={<MultiFarmMonitoring />} />
         <Route path="/multi-farm/:farmId" element={<FarmDetails />} />
+        <Route path="/multi-farm/:farmId/:pondId" element={<PondDetails />} />
         <Route path="/farm-map" element={<FarmLocationMap />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/reports" element={<ReportsAnalytics />} />
