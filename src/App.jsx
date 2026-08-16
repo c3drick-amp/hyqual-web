@@ -7,9 +7,12 @@ import FarmLocationMap from "./pages/FarmLocationMap";
 import Alerts from "./pages/Alerts";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
 import Profile from "./pages/Profile";
+
 import SuperadminOverview from "./pages/superadmin/SuperadminOverview";
 import UserManagement from "./pages/superadmin/UserManagement";
 import ArchivedAccounts from "./pages/superadmin/ArchivedAccounts";
+import DeviceRegistry from "./pages/superadmin/DeviceRegistry";
+import AuditLogs from "./pages/superadmin/AuditLogs";
 
 function App() {
   return (
@@ -24,9 +27,12 @@ function App() {
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/reports" element={<ReportsAnalytics />} />
         <Route path="/profile" element={<Profile />} />
+
         <Route path="/superadmin/overview" element={<SuperadminOverview />} />
         <Route path="/superadmin/users" element={<UserManagement />} />
         <Route path="/superadmin/users/archived" element={<ArchivedAccounts />} />
+        <Route path="/superadmin/devices" element={<DeviceRegistry />} />
+        <Route path="/superadmin/logs" element={<AuditLogs />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,0 +1,43 @@
+// DUMMY DATA — replace with real logged system events later.
+export const auditLogs = [
+  {
+    id: 1,
+    type: "signin",
+    actor: "Maria Reyes",
+    action: "Signed in",
+    detail: "BFAR Administrator",
+    displayTime: "July 7, 2026 2:50pm",
+    daysAgo: 0,
+    date: "2026-07-07",
+  },
+  {
+    id: 2,
+    type: "export",
+    actor: "Maria Reyes",
+    action: "Exported report",
+    detail: "Weekly mortality risk summary.pdf",
+    displayTime: "July 7, 2026 1:06pm",
+    daysAgo: 0,
+    date: "2026-07-07",
+  },
+  {
+    id: 3,
+    type: "export",
+    actor: "Maria Reyes",
+    action: "Generated compliance report",
+    detail: "Q2 farm compliance overview",
+    displayTime: "July 7, 2026 9:00am",
+    daysAgo: 0,
+    date: "2026-07-07",
+  },
+  {
+    id: 4,
+    type: "account",
+    actor: "Admin",
+    action: "Created account",
+    detail: "c.aguilar@bfar.gov · Farm Operator",
+    displayTime: "July 7, 2026 9:00am",
+    daysAgo: 0,
+    date: "2026-07-07",
+  },
+];
