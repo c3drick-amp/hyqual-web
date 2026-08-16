@@ -13,6 +13,7 @@ import UserManagement from "./pages/superadmin/UserManagement";
 import ArchivedAccounts from "./pages/superadmin/ArchivedAccounts";
 import DeviceRegistry from "./pages/superadmin/DeviceRegistry";
 import AuditLogs from "./pages/superadmin/AuditLogs";
+import AccountApproval from "./pages/superadmin/AccountApproval";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="/superadmin/users/archived" element={<ArchivedAccounts />} />
         <Route path="/superadmin/devices" element={<DeviceRegistry />} />
         <Route path="/superadmin/logs" element={<AuditLogs />} />
+        <Route path="/superadmin/approvals" element={<AccountApproval />} />
       </Routes>
     </BrowserRouter>
   );
