@@ -13,6 +13,7 @@ export const farmStats = {
 export const recentWarnings = [
   {
     id: 1,
+    farmId: 4, // Wawa Marine Pens
     type: "WATER QUALITY",
     status: "Critical",
     farm: "Wawa Marine Pens",
@@ -22,6 +23,7 @@ export const recentWarnings = [
   },
   {
     id: 2,
+    farmId: 2, // Lazareto Aqua Farm
     type: "WATER QUALITY",
     status: "Critical",
     farm: "Lazareto Aqua Farm",
@@ -31,6 +33,7 @@ export const recentWarnings = [
   },
   {
     id: 3,
+    farmId: 5, // San Antonio Tilapia
     type: "DEVICE",
     status: "Offline",
     farm: "San Antonio Tilapia",

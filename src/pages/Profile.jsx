@@ -20,7 +20,7 @@ function Profile() {
     city: storedUser?.city || "",
   });
 
-  const initials = `${form.firstName[0] || ""}${form.lastName[0] || ""}`;
+  const initials = `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`;
 
   const handleChange = (field) => (e) => {
     setForm({ ...form, [field]: e.target.value });
@@ -68,16 +68,14 @@ function Profile() {
         <div className="profile-card">
           <div className="profile-left">
             <div className="profile-avatar">{initials}</div>
-
-            {!isEditing ? (
-              <>
-                <button className="profile-btn" onClick={() => setIsEditing(true)}>
-                  Edit
-                </button>
-                <button className="profile-btn">Change Password</button>
-                <button className="profile-btn profile-btn-outline">Cancel</button>
-              </>
-            ) : (
+              {!isEditing ? (
+                <>
+                  <button className="profile-btn" onClick={() => setIsEditing(true)}>
+                    Edit
+                  </button>
+                  <button className="profile-btn">Change Password</button>
+                </>
+              ) : (
               <>
                 <button className="profile-btn" onClick={handleSave}>
                   Save Changes

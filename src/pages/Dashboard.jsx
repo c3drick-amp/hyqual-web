@@ -1,23 +1,10 @@
 import { useState, useRef } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  LayoutGrid,
-  Activity,
-  MapPin,
-  AlertTriangle,
-  BarChart2,
-  LogOut,
-  Bell,
-  Building2,
-  WifiOff,
-  CheckSquare,
-  AlertCircle,
-  Waves,
-  Layers,
+  Activity, MapPin, AlertTriangle, Bell,
+  Building2, WifiOff, CheckSquare, AlertCircle, Layers,
 } from "lucide-react";
-import logoIcon from "../assets/hyqual-logo-icon.png";
-import logoText from "../assets/hyqual-logo-text.png";
-import { farmStats, recentWarnings, recentActivity } from "../data/dashboardData";
+import { farmStats, recentWarnings } from "../data/dashboardData";
 import { farms } from "../data/farmsData";
 import { getOverallStatus } from "../data/thresholds";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
@@ -28,27 +15,7 @@ const statusColor = { normal: "#1f9d6e", critical: "#dc2626", moderate: "#f59e0b
 const CALAPAN_CENTER = { lat: 13.4117, lng: 121.1803 };
 
 function Dashboard() {
-  const navItems = [
-    { label: "Dashboard", icon: LayoutGrid, path: "/dashboard" },
-    { label: "Multi-Farm Monitoring", icon: Activity, path: "/multi-farm" },
-    { label: "Farm Location Map", icon: MapPin, path: "/farm-map" },
-    { label: "Hybrid Early Warning", icon: AlertTriangle, path: "/early-warning" },
-    { label: "Reports and Analytics", icon: BarChart2, path: "/reports" },
-  ];
-
   const navigate = useNavigate();
-
-    const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
-    const currentUser = storedUser || {
-    name: "Guest",
-    role: "Unknown",
-    initials: "?",
-    };
-
-    const handleSignOut = () => {
-    localStorage.removeItem("hyqual_user");
-    navigate("/login");
-    };
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -80,16 +47,15 @@ function Dashboard() {
       mapRef.current.setZoom(15);
     }
   };
-  
+
   const handleLegendClick = (status) => {
-    // clicking the same status again turns the filter back off
     setStatusFilter((prev) => (prev === status ? null : status));
   };
 
   return (
     <div className="dashboard-layout">
       {/* SIDEBAR */}
-        <Sidebar />
+      <Sidebar />
 
       {/* MAIN CONTENT */}
       <main className="dashboard-main">
@@ -106,7 +72,9 @@ function Dashboard() {
               <Bell size={18} />
               <span className="notif-badge">3</span>
             </button>
-            <button className="view-farms-btn">View all farms →</button>
+            <button className="view-farms-btn" onClick={() => navigate("/multi-farm")}>
+              View all farms →
+            </button>
           </div>
         </div>
 
@@ -181,11 +149,18 @@ function Dashboard() {
           <div className="warnings-panel grid-warnings">
             <div className="warnings-panel-header">
               <h3>Recent early warnings</h3>
-              <a href="#">Open early warning</a>
+              <span className="panel-link" onClick={() => navigate("/alerts")}>
+                Open early warning
+              </span>
             </div>
 
             {recentWarnings.map((w) => (
-              <div className="warning-item" key={w.id}>
+              <div
+                className="warning-item"
+                key={w.id}
+                onClick={() => navigate(`/multi-farm/${w.farmId}`)}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="warning-item-top">
                   <span className="warning-tag">{w.type}</span>
                   <span
@@ -222,96 +197,60 @@ function Dashboard() {
             </div>
 
             <div className="map-placeholder">
-              {visiblePins.map((farm) => (
-                <div
-                  key={farm.id}
-                  className={"map-pin map-pin-" + farm.status}
-                  style={{ top: farm.top, left: farm.left }}
-                  title={farm.name}
-                />
-              ))}
+              {isLoaded && (
+                <GoogleMap
+                  mapContainerStyle={{ width: "100%", height: "100%" }}
+                  center={CALAPAN_CENTER}
+                  zoom={13}
+                  onLoad={onMapLoad}
+                  options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+                >
+                  {visiblePins.map((farm) => (
+                    <Marker
+                      key={farm.id}
+                      position={{ lat: farm.lat, lng: farm.lng }}
+                      onClick={() => handlePinClick(farm)}
+                      icon={{
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        fillColor: statusColor[farm.status],
+                        fillOpacity: 1,
+                        strokeColor: "#ffffff",
+                        strokeWeight: 2,
+                        scale: 8,
+                      }}
+                    />
+                  ))}
+                </GoogleMap>
+              )}
 
-              <div className="map-placeholder">
-                {isLoaded && (
-                  <GoogleMap
-                    mapContainerStyle={{ width: "100%", height: "100%" }}
-                    center={CALAPAN_CENTER}
-                    zoom={13}
-                    onLoad={onMapLoad}
-                    options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
-                  >
-                    {visiblePins.map((farm) => (
-                      <Marker
-                        key={farm.id}
-                        position={{ lat: farm.lat, lng: farm.lng }}
-                        onClick={() => handlePinClick(farm)}
-                        icon={{
-                          path: window.google.maps.SymbolPath.CIRCLE,
-                          fillColor: statusColor[farm.status],
-                          fillOpacity: 1,
-                          strokeColor: "#ffffff",
-                          strokeWeight: 2,
-                          scale: 8,
-                        }}
-                      />
-                    ))}
-                  </GoogleMap>
-                )}
-
-                <div className="map-legend">
-                  <button
-                    className={"legend-btn" + (statusFilter === "normal" ? " legend-btn-active" : "")}
-                    onClick={() => handleLegendClick("normal")}
-                  >
-                    <span className="legend-dot legend-normal" /> Normal
-                  </button>
-                  <button
-                    className={"legend-btn" + (statusFilter === "critical" ? " legend-btn-active" : "")}
-                    onClick={() => handleLegendClick("critical")}
-                  >
-                    <span className="legend-dot legend-critical" /> Critical
-                  </button>
-                  <button
-                    className={"legend-btn" + (statusFilter === "moderate" ? " legend-btn-active" : "")}
-                    onClick={() => handleLegendClick("moderate")}
-                  >
-                    <span className="legend-dot legend-moderate" /> Moderate
-                  </button>
-                  <button
-                    className={"legend-btn" + (statusFilter === "offline" ? " legend-btn-active" : "")}
-                    onClick={() => handleLegendClick("offline")}
-                  >
-                    <span className="legend-dot legend-offline" /> Offline
-                  </button>
-                </div>
+              <div className="map-legend">
+                <button
+                  className={"legend-btn" + (statusFilter === "normal" ? " legend-btn-active" : "")}
+                  onClick={() => handleLegendClick("normal")}
+                >
+                  <span className="legend-dot legend-normal" /> Normal
+                </button>
+                <button
+                  className={"legend-btn" + (statusFilter === "critical" ? " legend-btn-active" : "")}
+                  onClick={() => handleLegendClick("critical")}
+                >
+                  <span className="legend-dot legend-critical" /> Critical
+                </button>
+                <button
+                  className={"legend-btn" + (statusFilter === "moderate" ? " legend-btn-active" : "")}
+                  onClick={() => handleLegendClick("moderate")}
+                >
+                  <span className="legend-dot legend-moderate" /> Moderate
+                </button>
+                <button
+                  className={"legend-btn" + (statusFilter === "offline" ? " legend-btn-active" : "")}
+                  onClick={() => handleLegendClick("offline")}
+                >
+                  <span className="legend-dot legend-offline" /> Offline
+                </button>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* RECENT MONITORING ACTIVITY */}
-        <div className="activity-card">
-          <div className="activity-header">
-            <div>
-              <h3>Recent monitoring activity</h3>
-              <p>Latest monitoring activities from participating farms</p>
-            </div>
-            <a href="#">Open multi-farm view</a>
-          </div>
-
-          {recentActivity.map((item) => (
-            <div className="activity-item" key={item.id}>
-              <span className="icon-box icon-box-green">
-                <Waves size={16} />
-              </span>
-              <div className="activity-text">
-                <p>
-                  <strong>{item.farm}</strong> · {item.action}
-                </p>
-              </div>
-              <span className="activity-time">{item.time}</span>
-            </div>
-          ))}
         </div>
       </main>
     </div>

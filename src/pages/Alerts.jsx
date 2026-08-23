@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Bell, AlertTriangle, Calendar } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
+import DateRangeModal from "../components/DateRangeModal";
 import { alerts } from "../data/alertsData";
 import "./Alerts.css";
-import DateRangeModal from "../components/DateRangeModal";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
 
@@ -24,13 +24,14 @@ function Alerts() {
   const [customRange, setCustomRange] = useState(null);
 
   const maxDays = { "24h": 1, "7d": 7, "30d": 30 };
+
   const filteredAlerts = alerts.filter((a) => {
-  if (activeTimeFilter === "custom" && customRange) {
-    return a.date >= customRange.from && a.date <= customRange.to;
-  }
-  if (activeTimeFilter === "all") return true;
-  return a.daysAgo <= maxDays[activeTimeFilter];
-});
+    if (activeTimeFilter === "custom" && customRange) {
+      return a.date >= customRange.from && a.date <= customRange.to;
+    }
+    if (activeTimeFilter === "all") return true;
+    return a.daysAgo <= maxDays[activeTimeFilter];
+  });
 
   return (
     <div className="dashboard-layout">
@@ -57,14 +58,20 @@ function Alerts() {
                 <button
                   key={f.key}
                   className={"time-filter-btn" + (activeTimeFilter === f.key ? " time-filter-active" : "")}
-                  onClick={() => setActiveTimeFilter(f.key)}
+                  onClick={() => {
+                    setActiveTimeFilter(f.key);
+                    setCustomRange(null);
+                  }}
                 >
                   {f.label}
                 </button>
               ))}
-                <button className="time-filter-btn custom-btn" onClick={() => setShowDateModal(true)}>
-                    <Calendar size={14} /> Custom
-                </button>
+              <button
+                className={"time-filter-btn custom-btn" + (activeTimeFilter === "custom" ? " time-filter-active" : "")}
+                onClick={() => setShowDateModal(true)}
+              >
+                <Calendar size={14} /> Custom
+              </button>
             </div>
           </div>
 
@@ -88,6 +95,10 @@ function Alerts() {
               <span className="alert-time">{alert.displayTime}</span>
             </div>
           ))}
+
+          {filteredAlerts.length === 0 && (
+            <p className="al-empty">No alerts in this range.</p>
+          )}
         </div>
       </main>
 
@@ -121,16 +132,17 @@ function Alerts() {
               </div>
             </div>
           </div>
-          {showDateModal && (
-            <DateRangeModal
-                onClose={() => setShowDateModal(false)}
-                onApply={(from, to) => {
-                setCustomRange({ from, to });
-                setActiveTimeFilter("custom");
-                }}
-            />
-            )}
         </Modal>
+      )}
+
+      {showDateModal && (
+        <DateRangeModal
+          onClose={() => setShowDateModal(false)}
+          onApply={(from, to) => {
+            setCustomRange({ from, to });
+            setActiveTimeFilter("custom");
+          }}
+        />
       )}
     </div>
   );
