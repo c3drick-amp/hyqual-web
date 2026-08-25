@@ -6,6 +6,8 @@ import DateRangeModal from "../components/DateRangeModal";
 import ReportPreview from "../components/ReportPreview";
 import { trendData, statusDistribution, summaryReports, availableFormats } from "../data/reportsData";
 import "./ReportsAnalytics.css";
+import { getReportData } from "../data/reportPreviewData";
+import { exportReport } from "../utils/reportExport";
 
 const statusFilters = ["All", "Normal", "Critical", "Warning", "Offline"];
 
@@ -17,7 +19,7 @@ function ReportsAnalytics() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [customRange, setCustomRange] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
-  const [showReportPreview, setShowReportPreview] = useState(false);
+  const [previewReportId, setPreviewReportId] = useState(null);
   const [selectedFormats, setSelectedFormats] = useState(
     Object.fromEntries(summaryReports.map((r) => [r.id, r.defaultFormat]))
   );
@@ -40,25 +42,19 @@ function ReportsAnalytics() {
   };
 
   const handlePreview = (report) => {
-    // Only the "Weekly water quality risk summary" reports have a styled preview for now
-    setShowReportPreview(true);
+    setPreviewReportId(report.id);
   };
 
   const handleDownload = (report) => {
     const format = selectedFormats[report.id];
-    const mimeTypes = { PDF: "application/pdf", CSV: "text/csv", XLSX: "application/vnd.ms-excel" };
+    const fullData = getReportData(report.id);
 
-    const content = `HyQual Report\nTitle: ${report.title}\nDate: ${report.date}\nFormat: ${format}\n\n(Placeholder content — replace with real generated report data.)`;
-    const blob = new Blob([content], { type: mimeTypes[format] || "text/plain" });
-    const url = URL.createObjectURL(blob);
+    if (!fullData) {
+      alert("No data available to export for this report yet.");
+      return;
+    }
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${report.title.replace(/\s+/g, "_")}.${format.toLowerCase()}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    exportReport(fullData, format);
   };
 
   return (
@@ -66,8 +62,8 @@ function ReportsAnalytics() {
       <Sidebar />
 
       <main className="dashboard-main">
-        {showReportPreview ? (
-          <ReportPreview onClose={() => setShowReportPreview(false)} />
+        {previewReportId ? (
+          <ReportPreview reportId={previewReportId} onClose={() => setPreviewReportId(null)} />
         ) : (
           <>
             <div className="dashboard-header">
@@ -95,7 +91,6 @@ function ReportsAnalytics() {
             </div>
 
             <div className="reports-grid">
-              {/* TREND CHART */}
               <div className="chart-card">
                 <div className="chart-card-header">
                   <div>
@@ -132,7 +127,6 @@ function ReportsAnalytics() {
                 )}
               </div>
 
-              {/* STATUS DISTRIBUTION */}
               <div className="distribution-card">
                 <h3>Farm status distribution</h3>
 
@@ -153,7 +147,6 @@ function ReportsAnalytics() {
               </div>
             </div>
 
-            {/* SUMMARY REPORTS */}
             <div className="summary-reports-card">
               <h3>Summary reports</h3>
 
