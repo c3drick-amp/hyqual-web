@@ -8,11 +8,11 @@ import { farms } from "../data/farmsData";
 import { THRESHOLDS, getParamStatus, getOverallStatus } from "../data/thresholds";
 import { historyLogs, pondAlerts } from "../data/pondDetailsData";
 import { summaryReports } from "../data/reportsData";
+import { getReportData } from "../data/reportPreviewData";
+import { exportReport } from "../utils/reportExport";
 import "./Dashboard.css";
 import "./FarmDetails.css";
 import "./PondDetails.css";
-import { getReportData } from "../data/reportPreviewData";
-import { exportReport } from "../utils/reportExport";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
 const tabs = ["History Logs", "Reports", "Alerts"];
@@ -40,31 +40,49 @@ function PondDetails() {
 
   if (!farm || !pond) return <p style={{ padding: 40 }}>Pond not found.</p>;
 
-  // Where this farm sits in the same farms list the report preview pages through —
-  // lets us jump straight to it instead of starting at Farm 1.
-  const farmIndexForReport = farms.findIndex((f) => f.id === farm.id);
-
   const readings = { temp: pond.temp, ph: pond.ph, do: pond.do, sal: pond.sal };
   const overallStatus = getOverallStatus(readings);
 
   const filteredLogs = historyLogs.filter((log) => log.status === historyFilter);
 
-  const handleExport = () => alert("Exporting history log...");
+  // Exports exactly what's currently shown in the History Logs table (respects the
+  // active Normal/Critical/Offline filter) as a CSV file.
+  const handleExportHistoryLog = () => {
+    const escapeCsv = (val) => `"${String(val).replace(/"/g, '""')}"`;
+
+    let csv = `History Log - ${farm.name} | ${pond.name}\n`;
+    csv += `Filter: ${statusLabel[historyFilter]}\n\n`;
+    csv += ["Time", "Temp (°C)", "DO (mg/L)", "pH", "Salinity (ppt)", "Status"].map(escapeCsv).join(",") + "\n";
+
+    filteredLogs.forEach((log) => {
+      csv += [log.time, log.temp, log.do, log.ph, log.sal, statusLabel[log.status]].map(escapeCsv).join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${farm.name.replace(/\s+/g, "_")}_${pond.name.replace(/\s+/g, "_")}_HistoryLog.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handlePreviewReport = (report) => {
     setPreviewReportId(report.id);
   };
 
+  // Scoped to THIS farm + THIS pond only — not the full multi-farm report.
   const handleDownloadReport = (report) => {
-    const format = "PDF"; // Pond Details doesn't have a format picker — defaults to PDF
-    const fullData = getReportData(report.id);
+    const scopedData = getReportData(report.id, { farmId: farm.id, pondId: pond.id });
 
-    if (!fullData) {
-      alert("No data available to export for this report yet.");
+    if (!scopedData || scopedData.farms.length === 0) {
+      alert("No data available to export for this pond in this report's date range.");
       return;
     }
 
-    exportReport(fullData, format);
+    exportReport(scopedData, "PDF");
   };
 
   return (
@@ -75,7 +93,7 @@ function PondDetails() {
         {previewReportId ? (
           <ReportPreview
             reportId={previewReportId}
-            initialFarmIndex={farmIndexForReport}
+            scope={{ farmId: farm.id, pondId: pond.id }}
             onClose={() => setPreviewReportId(null)}
           />
         ) : (
@@ -165,7 +183,7 @@ function PondDetails() {
                     <div className="pd-panel-header">
                       <h3>Historical Logs</h3>
                       <div className="pd-panel-actions">
-                        <button className="export-log-btn" onClick={handleExport}>
+                        <button className="export-log-btn" onClick={handleExportHistoryLog}>
                           <Download size={14} /> Export Log
                         </button>
                         <button className="time-filter-btn custom-btn" onClick={() => setShowDateModal(true)}>

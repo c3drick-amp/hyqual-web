@@ -125,19 +125,30 @@ function buildPondReport(farmId, pond, start, end) {
   return { pondName: pond.name, parameters, incidents };
 }
 
-// This is the function the UI actually calls. Today it reads from readingsPool
-// (a local array). Once Firebase is connected, only the INSIDE of this function
-// changes to a real Firestore query + aggregation — ReportPreview.jsx and
-// ReportsAnalytics.jsx never need to change, since they only ever call this.
-export function getReportData(reportId) {
+/**
+ * The function the UI actually calls. Today it reads from readingsPool
+ * (a local array). Once Firebase is connected, only the INSIDE of this
+ * function changes to a real Firestore query + aggregation — ReportPreview.jsx
+ * and ReportsAnalytics.jsx never need to change, since they only ever call this.
+ *
+ * @param {number} reportId - which report definition to use (1-4)
+ * @param {object} scope - optional. { farmId } to limit to one farm,
+ *   or { farmId, pondId } to limit to one specific pond within that farm.
+ *   Leave empty/undefined for the full multi-farm report (Reports & Analytics).
+ */
+export function getReportData(reportId, scope = {}) {
   const def = REPORT_DEFINITIONS[reportId];
   if (!def) return null;
 
-  const farmReports = farms.map((farm) => {
-    const ponds = farm.ponds.map((pond) => buildPondReport(farm.id, pond, def.start, def.end));
+  // Narrow down to just the requested farm(s) before doing any aggregation work
+  const targetFarms = scope.farmId ? farms.filter((f) => f.id === scope.farmId) : farms;
 
-    // Overall farm status = worst status among all its ponds' parameters
-    // (same "worst wins" logic used everywhere else in the app, e.g. thresholds.js).
+  const farmReports = targetFarms.map((farm) => {
+    // Narrow down to just the requested pond, if one was specified
+    const targetPonds = scope.pondId ? farm.ponds.filter((p) => p.id === scope.pondId) : farm.ponds;
+
+    const ponds = targetPonds.map((pond) => buildPondReport(farm.id, pond, def.start, def.end));
+
     const allStatuses = ponds.flatMap((p) => p.parameters.map((param) => param.status));
     const severity = { normal: 0, moderate: 1, critical: 2, offline: 1 };
     const overallStatus = allStatuses.reduce(
@@ -146,6 +157,7 @@ export function getReportData(reportId) {
     );
 
     return {
+      farmId: farm.id,
       farmName: farm.name,
       owner: farm.owner,
       location: farm.location,
@@ -169,5 +181,6 @@ export function getReportData(reportId) {
     reportId: def.reportId,
     summary,
     farms: farmReports,
+    isScoped: Boolean(scope.farmId), // lets the UI know whether to hide the multi-farm pager
   };
 }

@@ -4,15 +4,13 @@ import logoIcon from "../assets/hyqual-logo-icon.png";
 import { getReportData } from "../data/reportPreviewData";
 import "./ReportPreview.css";
 
-
 const statusLabel = { normal: "NORMAL", moderate: "MODERATE", critical: "CRITICAL", offline: "NO DATA" };
 
-// reportId decides WHICH report to load. The component doesn't know or care
-// whether that data came from a local file or a real database — it just
-// calls getReportData() and renders whatever comes back.
-function ReportPreview({ reportId, initialFarmIndex = 0, onClose }) {
-  const [farmIndex, setFarmIndex] = useState(initialFarmIndex);
-  const report = getReportData(reportId);
+// scope (optional): { farmId } or { farmId, pondId } — limits the report to
+// just that farm/pond instead of every farm. Leave undefined for the full report.
+function ReportPreview({ reportId, scope, onClose }) {
+  const [farmIndex, setFarmIndex] = useState(0);
+  const report = getReportData(reportId, scope);
 
   if (!report) {
     return (
@@ -27,7 +25,21 @@ function ReportPreview({ reportId, initialFarmIndex = 0, onClose }) {
     );
   }
 
+  if (report.farms.length === 0) {
+    return (
+      <div className="report-preview-wrapper">
+        <button className="report-back-btn" onClick={onClose}>
+          <ArrowLeft size={18} />
+        </button>
+        <div className="report-page">
+          <p>No data found for this farm/pond in this report's date range.</p>
+        </div>
+      </div>
+    );
+  }
+
   const farm = report.farms[farmIndex];
+  const showPager = report.farms.length > 1;
 
   const goPrev = () => setFarmIndex((i) => Math.max(0, i - 1));
   const goNext = () => setFarmIndex((i) => Math.min(report.farms.length - 1, i + 1));
@@ -51,38 +63,42 @@ function ReportPreview({ reportId, initialFarmIndex = 0, onClose }) {
 
         <hr />
 
-        {/* SUMMARY STAT BOXES */}
-        <div className="report-summary-row">
-          <div className="report-stat-box">
-            <span className="report-stat-value">{report.summary.farmsInReport}</span>
-            <span className="report-stat-label">Farms in Report</span>
+        {/* SUMMARY STAT BOXES — only meaningful for the full multi-farm report */}
+        {!report.isScoped && (
+          <div className="report-summary-row">
+            <div className="report-stat-box">
+              <span className="report-stat-value">{report.summary.farmsInReport}</span>
+              <span className="report-stat-label">Farms in Report</span>
+            </div>
+            <div className="report-stat-box">
+              <span className="report-stat-value report-stat-normal">{report.summary.normalOverall}</span>
+              <span className="report-stat-label">Normal overall</span>
+            </div>
+            <div className="report-stat-box">
+              <span className="report-stat-value report-stat-moderate">{report.summary.moderateOverall}</span>
+              <span className="report-stat-label">Moderate overall</span>
+            </div>
+            <div className="report-stat-box">
+              <span className="report-stat-value report-stat-critical">{report.summary.criticalOverall}</span>
+              <span className="report-stat-label">Critical overall</span>
+            </div>
           </div>
-          <div className="report-stat-box">
-            <span className="report-stat-value report-stat-normal">{report.summary.normalOverall}</span>
-            <span className="report-stat-label">Normal overall</span>
-          </div>
-          <div className="report-stat-box">
-            <span className="report-stat-value report-stat-moderate">{report.summary.moderateOverall}</span>
-            <span className="report-stat-label">Moderate overall</span>
-          </div>
-          <div className="report-stat-box">
-            <span className="report-stat-value report-stat-critical">{report.summary.criticalOverall}</span>
-            <span className="report-stat-label">Critical overall</span>
-          </div>
-        </div>
+        )}
 
-        {/* FARM PAGER */}
-        <div className="report-farm-pager">
-          <button className="farm-pager-arrow" onClick={goPrev} disabled={farmIndex === 0}>
-            <ChevronLeft size={16} />
-          </button>
-          <span className="farm-pager-pill">
-            Farm {farmIndex + 1} of {report.farms.length}
-          </span>
-          <button className="farm-pager-arrow" onClick={goNext} disabled={farmIndex === report.farms.length - 1}>
-            <ChevronRight size={16} />
-          </button>
-        </div>
+        {/* FARM PAGER — hidden when scoped to a single farm/pond */}
+        {showPager && (
+          <div className="report-farm-pager">
+            <button className="farm-pager-arrow" onClick={goPrev} disabled={farmIndex === 0}>
+              <ChevronLeft size={16} />
+            </button>
+            <span className="farm-pager-pill">
+              Farm {farmIndex + 1} of {report.farms.length}
+            </span>
+            <button className="farm-pager-arrow" onClick={goNext} disabled={farmIndex === report.farms.length - 1}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
 
         {/* FARM INFO */}
         <div className="report-farm-info">
