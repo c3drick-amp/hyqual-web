@@ -10,6 +10,8 @@ import { historyLogs, pondAlerts } from "../data/pondDetailsData";
 import { summaryReports } from "../data/reportsData";
 import { getReportData } from "../data/reportPreviewData";
 import { exportReport } from "../utils/reportExport";
+import { useLiveReading } from "../hooks/useLiveReading";
+import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
 import "./Dashboard.css";
 import "./FarmDetails.css";
 import "./PondDetails.css";
@@ -38,31 +40,41 @@ function PondDetails() {
   const farm = farms.find((f) => f.id === Number(farmId));
   const pond = farm?.ponds.find((p) => p.id === pondId);
 
+  // Always call hooks unconditionally (React rule) — safe even before the
+  // farm/pond-not-found check below, since useLiveReading doesn't depend on them.
+  const { reading: liveReading, loading: liveLoading } = useLiveReading();
+
   if (!farm || !pond) return <p style={{ padding: 40 }}>Pond not found.</p>;
 
-  const readings = { temp: pond.temp, ph: pond.ph, do: pond.do, sal: pond.sal };
-  const overallStatus = getOverallStatus(readings);
+  const isLivePond = farm.id === LIVE_DEVICE_TARGET.farmId && pond.id === LIVE_DEVICE_TARGET.pondId;
+
+  const staticReadings = { temp: pond.temp, ph: pond.ph, do: pond.do, sal: pond.sal };
+
+  // If this is the pond wired to the real device, use its live data instead of
+  // the static dummy values — everything else about the page works unchanged.
+  const displayReadings = isLivePond && liveReading ? liveReading : staticReadings;
+  const displayStatus = getOverallStatus(displayReadings);
 
   const filteredLogs = historyLogs.filter((log) => log.status === historyFilter);
 
-  // Exports exactly what's currently shown in the History Logs table (respects the
-  // active Normal/Critical/Offline filter) as a CSV file.
-  const handleExportHistoryLog = () => {
-    const escapeCsv = (val) => `"${String(val).replace(/"/g, '""')}"`;
+  // Exports exactly what's currently shown in the table (respects the active
+  // Normal/Critical/Offline filter), as a real downloadable CSV.
+  const handleExport = () => {
+    const escape = (val) => `"${String(val).replace(/"/g, '""')}"`;
 
-    let csv = `History Log - ${farm.name} | ${pond.name}\n`;
-    csv += `Filter: ${statusLabel[historyFilter]}\n\n`;
-    csv += ["Time", "Temp (°C)", "DO (mg/L)", "pH", "Salinity (ppt)", "Status"].map(escapeCsv).join(",") + "\n";
+    let csv = `${escape(farm.name + " | " + pond.name + " - Historical Log")}\n`;
+    csv += `${escape("Filter: " + statusLabel[historyFilter])}\n\n`;
+    csv += ["Time", "Temp (°C)", "DO (mg/L)", "pH", "Salinity (ppt)", "Status"].map(escape).join(",") + "\n";
 
     filteredLogs.forEach((log) => {
-      csv += [log.time, log.temp, log.do, log.ph, log.sal, statusLabel[log.status]].map(escapeCsv).join(",") + "\n";
+      csv += [log.time, log.temp, log.do, log.ph, log.sal, statusLabel[log.status]].map(escape).join(",") + "\n";
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${farm.name.replace(/\s+/g, "_")}_${pond.name.replace(/\s+/g, "_")}_HistoryLog.csv`;
+    link.download = `${farm.name}_${pond.name}_HistoryLog_${historyFilter}.csv`.replace(/\s+/g, "_");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -73,8 +85,8 @@ function PondDetails() {
     setPreviewReportId(report.id);
   };
 
-  // Scoped to THIS farm + THIS pond only — not the full multi-farm report.
   const handleDownloadReport = (report) => {
+    const format = "PDF";
     const scopedData = getReportData(report.id, { farmId: farm.id, pondId: pond.id });
 
     if (!scopedData || scopedData.farms.length === 0) {
@@ -82,7 +94,7 @@ function PondDetails() {
       return;
     }
 
-    exportReport(scopedData, "PDF");
+    exportReport(scopedData, format);
   };
 
   return (
@@ -116,9 +128,16 @@ function PondDetails() {
               <div className="pd-left">
                 <div className="farm-summary-card">
                   <div className="farm-summary-top">
-                    <h2>{farm.name} | {pond.name}</h2>
-                    <span className={"status-pill status-pill-" + overallStatus}>
-                      {statusLabel[overallStatus]}
+                    <h2>
+                      {farm.name} | {pond.name}
+                      {isLivePond && (
+                        <span className="live-badge">
+                          {liveLoading ? "Connecting..." : "● LIVE"}
+                        </span>
+                      )}
+                    </h2>
+                    <span className={"status-pill status-pill-" + displayStatus}>
+                      {statusLabel[displayStatus]}
                     </span>
                   </div>
                   <p>Owner: {farm.owner}</p>
@@ -133,7 +152,7 @@ function PondDetails() {
                   {["temp", "ph", "do", "sal"].map((param) => {
                     const config = readingConfig(param);
                     const Icon = config.icon;
-                    const value = readings[param];
+                    const value = displayReadings[param];
                     const paramStatus = getParamStatus(param, value);
                     const t = THRESHOLDS[param];
                     const rangeMax = t.normalMax === Infinity ? t.normalMin * 2 : t.normalMax;
@@ -183,7 +202,7 @@ function PondDetails() {
                     <div className="pd-panel-header">
                       <h3>Historical Logs</h3>
                       <div className="pd-panel-actions">
-                        <button className="export-log-btn" onClick={handleExportHistoryLog}>
+                        <button className="export-log-btn" onClick={handleExport}>
                           <Download size={14} /> Export Log
                         </button>
                         <button className="time-filter-btn custom-btn" onClick={() => setShowDateModal(true)}>

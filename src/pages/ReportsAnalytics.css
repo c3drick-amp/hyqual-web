@@ -179,3 +179,10 @@
   justify-content: center;
   cursor: pointer;
 }
+
+.chart-empty-note {
+  font-size: 13px;
+  color: #9ca3af;
+  padding: 40px 0;
+  text-align: center;
+}

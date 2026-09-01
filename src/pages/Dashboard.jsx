@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef} from "react"; 
 import { useNavigate } from "react-router-dom";
 import {
   Activity, MapPin, AlertTriangle, Bell,
@@ -10,6 +10,8 @@ import { getOverallStatus } from "../data/thresholds";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import "./Dashboard.css";
 import Sidebar from "../components/Sidebar";
+
+
 
 const statusColor = { normal: "#1f9d6e", critical: "#dc2626", moderate: "#f59e0b", offline: "#6b7280" };
 const CALAPAN_CENTER = { lat: 13.4117, lng: 121.1803 };
