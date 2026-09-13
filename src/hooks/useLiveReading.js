@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { rtdb } from "../firebase";
-import { getOverallStatus } from "../data/thresholds";
+import { getOverallStatus } from "../utils/thresholds";
 
 // The device stores each parameter as: paramName -> "YYYY-MM-DD" -> "HHMM" -> { value, ... }
 // This walks that nested tree and returns just the single most recent reading.

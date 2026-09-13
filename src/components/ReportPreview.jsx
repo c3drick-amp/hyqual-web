@@ -1,18 +1,28 @@
 import { useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
-import { getReportData } from "../data/reportPreviewData";
+import { getReportData } from "../utils/reportPreview";
 import { useLiveReading } from "../hooks/useLiveReading";
+import { useFarms } from "../hooks/useFarms";
 import "./ReportPreview.css";
 
 const statusLabel = { normal: "NORMAL", moderate: "MODERATE", critical: "CRITICAL", offline: "NO DATA" };
 
 // scope (optional): { farmId } or { farmId, pondId } — limits the report to
 // just that farm/pond instead of every farm. Leave undefined for the full report.
-function ReportPreview({ reportId, scope, onClose }) {
+function ReportPreview({ reportId, scope, onClose, farmData }) {
   const [farmIndex, setFarmIndex] = useState(0);
   const { history: liveHistory } = useLiveReading();
-  const report = getReportData(reportId, scope, liveHistory);
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
+  const report = getReportData(reportId, scope, liveHistory, farmData ?? farms);
+
+  if (farmsLoading && !farmData) {
+    return <div className="report-preview-wrapper"><p>Loading report data...</p></div>;
+  }
+
+  if (farmsError && !farmData) {
+    return <div className="report-preview-wrapper"><p>Unable to load report data from Firebase.</p></div>;
+  }
 
   if (!report) {
     return (

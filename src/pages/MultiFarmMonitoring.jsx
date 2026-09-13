@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Bell, Search, Waves } from "lucide-react";
 import Sidebar from "../components/Sidebar";
-import { farms } from "../data/farmsData";
-import { getOverallStatus, getParamStatus } from "../data/thresholds";
+import { getOverallStatus, getParamStatus } from "../utils/thresholds";
 import { useLiveReading } from "../hooks/useLiveReading";
-import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useFarms } from "../hooks/useFarms";
+import { LIVE_DEVICE_TARGET } from "../config/liveDeviceConfig";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import "./MultiFarmMonitoring.css";
 import { useNavigate } from "react-router-dom";
@@ -17,12 +17,16 @@ function MultiFarmMonitoring() {
   const navigate = useNavigate();
   const { reading: liveReading } = useLiveReading();
   const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
+
+  if (farmsLoading) return <p style={{ padding: 40 }}>Loading farms...</p>;
+  if (farmsError) return <p style={{ padding: 40 }}>Unable to load farms from Firebase.</p>;
 
   // Derive each farm's overall status + display readings from its first pond.
   // This is what makes the colors dynamic instead of hardcoded.
-  const farmsWithStatus = farms.map((farm) => {
+  const farmsWithStatus = farms.filter((farm) => farm.ponds.length > 0).map((farm) => {
     const mainPond = farm.ponds[0];
-    const isLivePond = farm.id === LIVE_DEVICE_TARGET.farmId && mainPond.id === LIVE_DEVICE_TARGET.pondId;
+    const isLivePond = String(farm.id) === String(LIVE_DEVICE_TARGET.farmId) && mainPond.id === LIVE_DEVICE_TARGET.pondId;
     const readings = isLivePond && liveReading
       ? liveReading
       : { temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal };

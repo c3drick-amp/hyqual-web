@@ -4,11 +4,12 @@ import {
   Activity, MapPin, AlertTriangle, Bell,
   Building2, WifiOff, CheckSquare, AlertCircle, Layers,
 } from "lucide-react";
-import { recentWarnings } from "../data/dashboardData";
-import { farms } from "../data/farmsData";
-import { getOverallStatus } from "../data/thresholds";
+import { getOverallStatus } from "../utils/thresholds";
 import { useLiveReading } from "../hooks/useLiveReading";
-import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useFarms } from "../hooks/useFarms";
+import { useFirestoreCollection } from "../hooks/useFirestoreCollection";
+import { buildReadingAlerts, getAlertTimestamp, normalizeStoredAlerts } from "../utils/alertHelpers";
+import { LIVE_DEVICE_TARGET } from "../config/liveDeviceConfig";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import "./Dashboard.css";
@@ -29,12 +30,17 @@ function Dashboard() {
   const mapRef = useRef(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
-  const { reading: liveReading } = useLiveReading();
+  const { reading: liveReading, history: liveHistory } = useLiveReading();
   const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
+  const { items: storedAlertItems, loading: alertsLoading, error: alertsError } = useFirestoreCollection("alerts");
 
-  const farmsWithStatus = farms.map((farm) => {
+  if (farmsLoading || alertsLoading) return <p style={{ padding: 40 }}>Loading dashboard...</p>;
+  if (farmsError || alertsError) return <p style={{ padding: 40 }}>Unable to load dashboard data from Firebase.</p>;
+
+  const farmsWithStatus = farms.filter((farm) => farm.ponds.length > 0).map((farm) => {
     const mainPond = farm.ponds[0];
-    const isLivePond = farm.id === LIVE_DEVICE_TARGET.farmId && mainPond.id === LIVE_DEVICE_TARGET.pondId;
+    const isLivePond = String(farm.id) === String(LIVE_DEVICE_TARGET.farmId) && mainPond.id === LIVE_DEVICE_TARGET.pondId;
     const readings = isLivePond && liveReading
       ? liveReading
       : { temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal };
@@ -53,6 +59,31 @@ function Dashboard() {
     critical: farmsWithStatus.filter((farm) => farm.status === "critical").length,
     moderate: farmsWithStatus.filter((farm) => farm.status === "moderate").length,
   };
+
+  const alerts = [
+    ...buildReadingAlerts(liveHistory, farms),
+    ...(deviceStatusReady && !deviceOnline ? [{
+      id: "device-offline",
+      farmId: LIVE_DEVICE_TARGET.farmId,
+      pondId: LIVE_DEVICE_TARGET.pondId,
+      farmName: farms.find((farm) => String(farm.id) === String(LIVE_DEVICE_TARGET.farmId))?.name ?? "",
+      status: "offline",
+      message: "Monitoring device is offline and is not sending readings.",
+      displayTime: "Now",
+      createdAt: new Date().toISOString(),
+    }] : []),
+    ...normalizeStoredAlerts(storedAlertItems, farms),
+  ].sort((a, b) => getAlertTimestamp(b.createdAt) - getAlertTimestamp(a.createdAt));
+
+  const recentWarnings = alerts.map((alert) => ({
+    ...alert,
+    type: alert.type ?? "WATER QUALITY",
+    status: String(alert.status ?? "moderate").toLowerCase(),
+    farm: alert.farmName,
+    detail: alert.message,
+    action: alert.action ?? "Review the latest reading.",
+    time: alert.displayTime,
+  }));
 
   const visiblePins = farmsWithStatus.filter((farm) => {
     if (!showOverlay) return false;
@@ -185,12 +216,9 @@ function Dashboard() {
                 <div className="warning-item-top">
                   <span className="warning-tag">{w.type}</span>
                   <span
-                    className={
-                      "warning-status " +
-                      (w.status === "Critical" ? "status-critical" : "status-offline")
-                    }
+                    className={`warning-status status-${w.status}`}
                   >
-                    {w.status}
+                    {w.status.replace(/^./, (letter) => letter.toUpperCase())}
                   </span>
                 </div>
                 <p className="warning-farm">{w.farm}</p>

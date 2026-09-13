@@ -1,37 +1,13 @@
 import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
 import "./Login.css";
-
-// TEMPORARY hardcoded accounts — replace with real Firebase Authentication later
-const ACCOUNTS = [
-  {
-    email: "juandelacruz@gmail.com",
-    password: "password123",
-    firstName: "Juan",
-    middleName: "Santos",
-    lastName: "Dela Cruz",
-    mobile: "+63 900 000 0000",
-    street: "",
-    barangay: "",
-    city: "Calapan",
-    role: "BFAR Administrator",
-  },
-  {
-    email: "antoniocruz@gmail.com",
-    password: "password123",
-    firstName: "Antonio",
-    middleName: "Ramon",
-    lastName: "Cruz",
-    mobile: "+63 908 724 1567",
-    street: "XYZ St.",
-    barangay: "Libis",
-    city: "Calapan",
-    role: "Superadmin",
-  },
-];
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -40,26 +16,47 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    const matchedAccount = ACCOUNTS.find(
-      (acc) => acc.email === email && acc.password === password
-    );
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
-    if (matchedAccount) {
-      const { password, ...userWithoutPassword } = matchedAccount;
-      localStorage.setItem("hyqual_user", JSON.stringify(userWithoutPassword));
+      const firebaseUser = userCredential.user;
 
-      if (matchedAccount.role === "Superadmin") {
+      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+
+      if (!userDoc.exists()) {
+        setError("User profile not found.");
+        return;
+      }
+
+      const userData = userDoc.data();
+
+      localStorage.setItem(
+        "hyqual_user",
+        JSON.stringify({
+          uid: firebaseUser.uid,
+          ...userData,
+        })
+      );
+
+      if (userData.role === "Superadmin") {
         navigate("/superadmin/overview");
       } else {
         navigate("/dashboard");
       }
-    } else {
+    } catch (err) {
+      console.error("Login error:", err);
       setError("Invalid email or password.");
     }
   };
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -90,7 +87,6 @@ function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
             <button
               type="button"
@@ -118,3 +114,4 @@ function Login() {
 }
 
 export default Login;
+

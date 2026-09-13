@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import { Bell, MapPin, Layers } from "lucide-react";
 import Sidebar from "../components/Sidebar";
-import { farms } from "../data/farmsData";
-import { getOverallStatus } from "../data/thresholds";
+import { getOverallStatus } from "../utils/thresholds";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
+import { useFarms } from "../hooks/useFarms";
 import "./FarmLocationMap.css";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
@@ -25,8 +25,9 @@ function FarmLocationMap() {
   const [showOverlay, setShowOverlay] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
   const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
 
-  const farmsWithStatus = farms.map((farm) => {
+  const farmsWithStatus = farms.filter((farm) => farm.ponds.length > 0).map((farm) => {
     const mainPond = farm.ponds[0];
     const qualityStatus = getOverallStatus({
       temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal,
@@ -59,6 +60,8 @@ function FarmLocationMap() {
     setStatusFilter((prev) => (prev === status ? null : status));
   };
 
+  if (farmsLoading) return <p style={{ padding: 40 }}>Loading farms...</p>;
+  if (farmsError) return <p style={{ padding: 40 }}>Unable to load farms from Firebase.</p>;
   if (!isLoaded) return <p style={{ padding: 40 }}>Loading map...</p>;
 
   return (

@@ -23,3 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+sample-database-f378d-firebase-adminsdk-fbsvc-593e24e021.json

@@ -4,16 +4,46 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import Sidebar from "../components/Sidebar";
 import DateRangeModal from "../components/DateRangeModal";
 import ReportPreview from "../components/ReportPreview";
-import { trendData, statusDistribution, summaryReports, availableFormats } from "../data/reportsData";
+import { summaryReports, availableFormats } from "../config/reportDefinitions";
 import "./ReportsAnalytics.css";
-import { getReportData } from "../data/reportPreviewData";
+import { getReportData } from "../utils/reportPreview";
 import { exportReport } from "../utils/reportExport";
 import { useLiveReading } from "../hooks/useLiveReading";
+import { useFarms } from "../hooks/useFarms";
 
 const statusFilters = ["All", "Normal", "Critical", "Warning", "Offline"];
 
 const filterKeyMap = { Normal: "normal", Critical: "critical", Warning: "warning", Offline: "offline" };
 const chartColors = { normal: "#1f9d6e", critical: "#dc2626", warning: "#f59e0b" };
+
+function buildAnalytics(history) {
+  const groups = history.reduce((result, reading) => {
+    const date = new Date(reading.createdAt);
+    const key = Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleDateString([], { month: "short", day: "numeric" });
+    const group = result[key] || { month: key, normal: 0, critical: 0, warning: 0 };
+    if (reading.status === "normal") group.normal += 1;
+    if (reading.status === "critical") group.critical += 1;
+    if (reading.status === "moderate") group.warning += 1;
+    result[key] = group;
+    return result;
+  }, {});
+
+  const trend = Object.values(groups).reverse();
+  const total = history.length || 1;
+  const counts = [
+    { label: "Normal", key: "normal", color: chartColors.normal },
+    { label: "Critical", key: "critical", color: chartColors.critical },
+    { label: "Warning", key: "warning", color: chartColors.warning },
+  ];
+
+  return {
+    trend,
+    distribution: counts.map((item) => ({
+      ...item,
+      percent: Math.round((history.filter((reading) => reading.status === (item.key === "warning" ? "moderate" : item.key)).length / total) * 100),
+    })),
+  };
+}
 
 function ReportsAnalytics() {
   const [activeFilter, setActiveFilter] = useState("All");
@@ -22,6 +52,8 @@ function ReportsAnalytics() {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [previewReportId, setPreviewReportId] = useState(null);
   const { history: liveHistory } = useLiveReading();
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
+  const { trend: trendData, distribution: statusDistribution } = buildAnalytics(liveHistory);
   const [selectedFormats, setSelectedFormats] = useState(
     Object.fromEntries(summaryReports.map((r) => [r.id, r.defaultFormat]))
   );
@@ -49,7 +81,7 @@ function ReportsAnalytics() {
 
   const handleDownload = (report) => {
     const format = selectedFormats[report.id];
-    const fullData = getReportData(report.id, {}, liveHistory);
+    const fullData = getReportData(report.id, {}, liveHistory, farms);
 
     if (!fullData) {
       alert("No data available to export for this report yet.");
@@ -64,8 +96,9 @@ function ReportsAnalytics() {
       <Sidebar />
 
       <main className="dashboard-main">
-        {previewReportId ? (
-          <ReportPreview reportId={previewReportId} onClose={() => setPreviewReportId(null)} />
+        {farmsLoading ? <p style={{ padding: 40 }}>Loading farms...</p> : farmsError ? <p style={{ padding: 40 }}>Unable to load farms from Firebase.</p> : (
+        previewReportId ? (
+          <ReportPreview reportId={previewReportId} farmData={farms} onClose={() => setPreviewReportId(null)} />
         ) : (
           <>
             <div className="dashboard-header">
@@ -199,7 +232,7 @@ function ReportsAnalytics() {
               ))}
             </div>
           </>
-        )}
+        ))}
       </main>
 
       {showDateModal && (

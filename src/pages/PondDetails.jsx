@@ -4,14 +4,14 @@ import { Bell, Thermometer, Droplet, Wind, Waves, Download, Calendar, Eye, Alert
 import Sidebar from "../components/Sidebar";
 import DateRangeModal from "../components/DateRangeModal";
 import ReportPreview from "../components/ReportPreview";
-import { farms } from "../data/farmsData";
-import { THRESHOLDS, getParamStatus, getOverallStatus } from "../data/thresholds";
-import { historyLogs, pondAlerts } from "../data/pondDetailsData";
-import { summaryReports } from "../data/reportsData";
-import { getReportData } from "../data/reportPreviewData";
+import { THRESHOLDS, getParamStatus, getOverallStatus } from "../utils/thresholds";
+import { summaryReports } from "../config/reportDefinitions";
+import { getReportData } from "../utils/reportPreview";
 import { exportReport } from "../utils/reportExport";
 import { useLiveReading } from "../hooks/useLiveReading";
-import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useFarms } from "../hooks/useFarms";
+import { useAlerts } from "../hooks/useAlerts";
+import { LIVE_DEVICE_TARGET } from "../config/liveDeviceConfig";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import "./Dashboard.css";
 import "./FarmDetails.css";
@@ -38,17 +38,22 @@ function PondDetails() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [previewReportId, setPreviewReportId] = useState(null);
 
-  const farm = farms.find((f) => f.id === Number(farmId));
-  const pond = farm?.ponds.find((p) => p.id === pondId);
-
   // Always call hooks unconditionally (React rule) — safe even before the
   // farm/pond-not-found check below, since useLiveReading doesn't depend on them.
   const { reading: liveReading, history: liveHistory, loading: liveLoading } = useLiveReading();
   const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
+  const { alerts, loading: alertsLoading, error: alertsError } = useAlerts();
 
-  if (!farm || !pond) return <p style={{ padding: 40 }}>Pond not found.</p>;
+  if (farmsLoading || alertsLoading) return <p style={{ padding: 40 }}>Loading pond...</p>;
+  if (farmsError || alertsError) return <p style={{ padding: 40 }}>Unable to load this pond from Firebase.</p>;
 
-  const isLivePond = farm.id === LIVE_DEVICE_TARGET.farmId && pond.id === LIVE_DEVICE_TARGET.pondId;
+  const farm = farms.find((item) => String(item.id) === String(farmId));
+  const pond = farm?.ponds.find((item) => String(item.id) === String(pondId));
+
+  if (!farm || !pond) return <p style={{ padding: 40 }}>Pond not found in Firebase.</p>;
+
+  const isLivePond = String(farm.id) === String(LIVE_DEVICE_TARGET.farmId) && String(pond.id) === String(LIVE_DEVICE_TARGET.pondId);
 
   const staticReadings = { temp: pond.temp, ph: pond.ph, do: pond.do, sal: pond.sal };
 
@@ -59,8 +64,17 @@ function PondDetails() {
     ? "offline"
     : getOverallStatus(displayReadings);
 
-  const displayedHistory = isLivePond && liveHistory.length > 0 ? liveHistory : historyLogs;
+  const displayedHistory = liveHistory;
   const filteredLogs = displayedHistory.filter((log) => log.status === historyFilter);
+  const pondAlerts = alerts
+    .filter((alert) => String(alert.farmId) === String(farm.id) && String(alert.pondId) === String(pond.id))
+    .map((alert) => ({
+      ...alert,
+      title: alert.title ?? alert.riskLabel ?? "Water quality alert",
+      pond: alert.pond ?? pond.name,
+      message: alert.message ?? "Review the latest reading.",
+      time: alert.displayTime,
+    }));
 
   // Exports exactly what's currently shown in the table (respects the active
   // Normal/Critical/Offline filter), as a real downloadable CSV.
@@ -92,7 +106,7 @@ function PondDetails() {
 
   const handleDownloadReport = (report) => {
     const format = "PDF";
-    const scopedData = getReportData(report.id, { farmId: farm.id, pondId: pond.id }, liveHistory);
+    const scopedData = getReportData(report.id, { farmId: farm.id, pondId: pond.id }, liveHistory, farms);
 
     if (!scopedData || scopedData.farms.length === 0) {
       alert("No data available to export for this pond in this report's date range.");
@@ -111,6 +125,7 @@ function PondDetails() {
           <ReportPreview
             reportId={previewReportId}
             scope={{ farmId: farm.id, pondId: pond.id }}
+            farmData={farms}
             onClose={() => setPreviewReportId(null)}
           />
         ) : (

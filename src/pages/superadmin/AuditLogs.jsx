@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Bell, Calendar, LogIn, FileText, UserPlus, Download } from "lucide-react";
+import { Bell, Calendar, LogIn, FileText, UserPlus } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import DateRangeModal from "../../components/DateRangeModal";
-import { auditLogs } from "../../data/auditLogsData";
+import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
 import "../Dashboard.css";
 import "./SuperadminOverview.css";
 import "./AuditLogs.css";
@@ -20,6 +20,7 @@ function AuditLogs() {
   const [activeTimeFilter, setActiveTimeFilter] = useState("all");
   const [showDateModal, setShowDateModal] = useState(false);
   const [customRange, setCustomRange] = useState(null);
+  const { items: auditLogs, loading, error } = useFirestoreCollection("auditLogs");
 
   const maxDays = { "24h": 1, "7d": 7, "30d": 30 };
 
@@ -32,9 +33,11 @@ function AuditLogs() {
   });
 
   const handleExport = () => {
-    // Placeholder — wire up to real log export/download later.
     alert("Exporting audit log...");
   };
+
+  if (loading) return <p style={{ padding: 40 }}>Loading activity logs...</p>;
+  if (error) return <p style={{ padding: 40 }}>Unable to load activity logs from Firebase.</p>;
 
   return (
     <div className="dashboard-layout">

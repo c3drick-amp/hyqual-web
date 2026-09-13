@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Bell, Sprout } from "lucide-react";
 import Sidebar from "../components/Sidebar";
-import { farms } from "../data/farmsData";
-import { getOverallStatus } from "../data/thresholds";
+import { getOverallStatus } from "../utils/thresholds";
 import { useLiveReading } from "../hooks/useLiveReading";
-import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useFarms } from "../hooks/useFarms";
+import { LIVE_DEVICE_TARGET } from "../config/liveDeviceConfig";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import "./FarmDetails.css";
 
@@ -13,14 +13,19 @@ const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderat
 function FarmDetails() {
   const { farmId } = useParams();
   const navigate = useNavigate();
-  const farm = farms.find((f) => f.id === Number(farmId));
   const { reading: liveReading, loading: liveLoading } = useLiveReading();
   const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
+  const { farms, loading: farmsLoading, error: farmsError } = useFarms();
 
-  if (!farm) return <p style={{ padding: 40 }}>Farm not found.</p>;
+  if (farmsLoading) return <p style={{ padding: 40 }}>Loading farm...</p>;
+  if (farmsError) return <p style={{ padding: 40 }}>Unable to load this farm from Firebase.</p>;
+
+  const farm = farms.find((item) => String(item.id) === String(farmId));
+
+  if (!farm || farm.ponds.length === 0) return <p style={{ padding: 40 }}>Farm not found or has no ponds.</p>;
 
   const mainPond = farm.ponds[0];
-  const isLiveFarm = farm.id === LIVE_DEVICE_TARGET.farmId;
+  const isLiveFarm = String(farm.id) === String(LIVE_DEVICE_TARGET.farmId);
   const mainPondReadings = isLiveFarm && mainPond.id === LIVE_DEVICE_TARGET.pondId && liveReading
     ? liveReading
     : mainPond;

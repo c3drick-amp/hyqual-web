@@ -4,7 +4,7 @@ import { Bell, AlertTriangle, Calendar } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
 import DateRangeModal from "../components/DateRangeModal";
-import { alerts } from "../data/alertsData";
+import { useAlerts } from "../hooks/useAlerts";
 import "./Alerts.css";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
@@ -22,6 +22,7 @@ function Alerts() {
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
   const [customRange, setCustomRange] = useState(null);
+  const { alerts, loading, error } = useAlerts();
 
   const maxDays = { "24h": 1, "7d": 7, "30d": 30 };
 
@@ -32,6 +33,9 @@ function Alerts() {
     if (activeTimeFilter === "all") return true;
     return a.daysAgo <= maxDays[activeTimeFilter];
   });
+
+  if (loading) return <p style={{ padding: 40 }}>Loading alerts...</p>;
+  if (error) return <p style={{ padding: 40 }}>Unable to load alerts from Firebase.</p>;
 
   return (
     <div className="dashboard-layout">

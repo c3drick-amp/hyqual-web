@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { X } from "lucide-react";
 import { Bell } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import Modal from "../../components/Modal";
-import { initialApprovals } from "../../data/approvalsData";
+import { db } from "../../firebase";
+import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
 import "../Dashboard.css";
 import "./SuperadminOverview.css";
 import "./AccountApproval.css";
@@ -11,25 +13,26 @@ import "./AccountApproval.css";
 const tabs = ["All", "BFAR Admin", "Farm Owner"];
 
 function AccountApproval() {
-  const [approvals, setApprovals] = useState(initialApprovals);
   const [activeTab, setActiveTab] = useState("All");
   const [selected, setSelected] = useState(null);
+  const { items: approvals, loading, error } = useFirestoreCollection("approvals");
 
   const filteredApprovals = approvals.filter(
     (a) => activeTab === "All" || a.role === activeTab
   );
 
-  const handleApprove = (id) => {
-    // Placeholder — wire up to real account activation later.
-    setApprovals((prev) => prev.filter((a) => a.id !== id));
+  const handleApprove = async (id) => {
+    await updateDoc(doc(db, "approvals", id), { status: "Approved", approvedAt: new Date().toISOString() });
     setSelected(null);
   };
 
-  const handleReject = (id) => {
-    // Placeholder — wire up to real rejection/notification later.
-    setApprovals((prev) => prev.filter((a) => a.id !== id));
+  const handleReject = async (id) => {
+    await deleteDoc(doc(db, "approvals", id));
     setSelected(null);
   };
+
+  if (loading) return <p style={{ padding: 40 }}>Loading approvals...</p>;
+  if (error) return <p style={{ padding: 40 }}>Unable to load approvals from Firebase.</p>;
 
   return (
     <div className="dashboard-layout">
