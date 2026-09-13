@@ -4,9 +4,12 @@ import {
   Activity, MapPin, AlertTriangle, Bell,
   Building2, WifiOff, CheckSquare, AlertCircle, Layers,
 } from "lucide-react";
-import { farmStats, recentWarnings } from "../data/dashboardData";
+import { recentWarnings } from "../data/dashboardData";
 import { farms } from "../data/farmsData";
 import { getOverallStatus } from "../data/thresholds";
+import { useLiveReading } from "../hooks/useLiveReading";
+import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import "./Dashboard.css";
 import Sidebar from "../components/Sidebar";
@@ -26,14 +29,30 @@ function Dashboard() {
   const mapRef = useRef(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
+  const { reading: liveReading } = useLiveReading();
+  const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
 
   const farmsWithStatus = farms.map((farm) => {
     const mainPond = farm.ponds[0];
-    const status = getOverallStatus({
-      temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal,
+    const isLivePond = farm.id === LIVE_DEVICE_TARGET.farmId && mainPond.id === LIVE_DEVICE_TARGET.pondId;
+    const readings = isLivePond && liveReading
+      ? liveReading
+      : { temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal };
+    const qualityStatus = getOverallStatus({
+      temp: readings.temp, ph: readings.ph, do: readings.do, sal: readings.sal,
     });
-    return { ...farm, status };
+    const deviceOffline = isLivePond && deviceStatusReady && !deviceOnline;
+    return { ...farm, status: deviceOffline ? "offline" : qualityStatus };
   });
+
+  const dashboardStats = {
+    registered: farmsWithStatus.length,
+    active: farmsWithStatus.filter((farm) => farm.status !== "offline").length,
+    offline: farmsWithStatus.filter((farm) => farm.status === "offline").length,
+    normal: farmsWithStatus.filter((farm) => farm.status === "normal").length,
+    critical: farmsWithStatus.filter((farm) => farm.status === "critical").length,
+    moderate: farmsWithStatus.filter((farm) => farm.status === "moderate").length,
+  };
 
   const visiblePins = farmsWithStatus.filter((farm) => {
     if (!showOverlay) return false;
@@ -89,7 +108,7 @@ function Dashboard() {
                 <Building2 size={18} />
               </span>
             </div>
-            <h2>{farmStats.registered}</h2>
+            <h2>{dashboardStats.registered}</h2>
             <p>Total participating shrimp farms</p>
           </div>
 
@@ -100,7 +119,7 @@ function Dashboard() {
                 <Activity size={18} />
               </span>
             </div>
-            <h2>{farmStats.active}</h2>
+            <h2>{dashboardStats.active}</h2>
             <p>Currently in operation</p>
           </div>
 
@@ -111,7 +130,7 @@ function Dashboard() {
                 <WifiOff size={18} />
               </span>
             </div>
-            <h2>{farmStats.offline}</h2>
+            <h2>{dashboardStats.offline}</h2>
             <p>Not transmitting to cloud</p>
           </div>
 
@@ -122,7 +141,7 @@ function Dashboard() {
                 <CheckSquare size={18} />
               </span>
             </div>
-            <h2>{farmStats.normal}</h2>
+            <h2>{dashboardStats.normal}</h2>
             <p>Within acceptable water quality</p>
           </div>
 
@@ -133,7 +152,7 @@ function Dashboard() {
                 <AlertCircle size={18} />
               </span>
             </div>
-            <h2>{farmStats.critical}</h2>
+            <h2>{dashboardStats.critical}</h2>
             <p>Requires immediate attention</p>
           </div>
 
@@ -144,7 +163,7 @@ function Dashboard() {
                 <AlertTriangle size={18} />
               </span>
             </div>
-            <h2>{farmStats.moderate}</h2>
+            <h2>{dashboardStats.moderate}</h2>
             <p>Requires closer monitoring</p>
           </div>
 

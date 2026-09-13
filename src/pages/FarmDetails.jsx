@@ -3,6 +3,9 @@ import { Bell, Sprout } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { farms } from "../data/farmsData";
 import { getOverallStatus } from "../data/thresholds";
+import { useLiveReading } from "../hooks/useLiveReading";
+import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import "./FarmDetails.css";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
@@ -11,13 +14,20 @@ function FarmDetails() {
   const { farmId } = useParams();
   const navigate = useNavigate();
   const farm = farms.find((f) => f.id === Number(farmId));
+  const { reading: liveReading, loading: liveLoading } = useLiveReading();
+  const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
 
   if (!farm) return <p style={{ padding: 40 }}>Farm not found.</p>;
 
   const mainPond = farm.ponds[0];
-  const overallStatus = getOverallStatus({
-    temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal,
+  const isLiveFarm = farm.id === LIVE_DEVICE_TARGET.farmId;
+  const mainPondReadings = isLiveFarm && mainPond.id === LIVE_DEVICE_TARGET.pondId && liveReading
+    ? liveReading
+    : mainPond;
+  const qualityStatus = getOverallStatus({
+    temp: mainPondReadings.temp, ph: mainPondReadings.ph, do: mainPondReadings.do, sal: mainPondReadings.sal,
   });
+  const overallStatus = isLiveFarm && deviceStatusReady && !deviceOnline ? "offline" : qualityStatus;
 
   return (
     <div className="dashboard-layout">
@@ -34,7 +44,6 @@ function FarmDetails() {
               <Bell size={18} />
               <span className="notif-badge">3</span>
             </button>
-            <button className="view-farms-btn">+ Register farm</button>
           </div>
         </div>
 
@@ -48,16 +57,19 @@ function FarmDetails() {
           <p>Operator: {farm.owner}</p>
           <p>Location: {farm.location}</p>
           <p>Ponds: {farm.ponds.length}</p>
-          <p>Updated {farm.updatedAt}</p>
+          <p>Updated {isLiveFarm && liveReading ? "just now" : farm.updatedAt}</p>
         </div>
 
         <h3 className="ponds-heading">Ponds</h3>
 
         <div className="ponds-grid">
           {farm.ponds.map((pond) => {
-            const pondStatus = getOverallStatus({
-              temp: pond.temp, ph: pond.ph, do: pond.do, sal: pond.sal,
+            const isLivePond = isLiveFarm && pond.id === LIVE_DEVICE_TARGET.pondId;
+            const pondReadings = isLivePond && liveReading ? liveReading : pond;
+            const qualityStatus = getOverallStatus({
+              temp: pondReadings.temp, ph: pondReadings.ph, do: pondReadings.do, sal: pondReadings.sal,
             });
+            const pondStatus = isLivePond && deviceStatusReady && !deviceOnline ? "offline" : qualityStatus;
             return (
               <div
                 className={"pond-card pond-card-" + pondStatus}
@@ -67,15 +79,15 @@ function FarmDetails() {
               >
                 <div className="pond-card-header">
                   <span className="pond-title">
-                    <Sprout size={16} /> {pond.name}
+                    <Sprout size={16} /> {pond.name}{isLivePond && ` ${liveLoading ? "(Connecting...)" : "(LIVE)"}`}
                   </span>
                   <span className={"status-dot status-dot-" + pondStatus} />
                 </div>
                 <div className="pond-readings">
-                  <span><strong>Temp:</strong> {pond.temp} °C</span>
-                  <span><strong>pH:</strong> {pond.ph}</span>
-                  <span><strong>DO:</strong> {pond.do} mg/L</span>
-                  <span><strong>Salinity:</strong> {pond.sal} ppt</span>
+                  <span><strong>Temp:</strong> {pondReadings.temp} °C</span>
+                  <span><strong>pH:</strong> {pondReadings.ph}</span>
+                  <span><strong>DO:</strong> {pondReadings.do} mg/L</span>
+                  <span><strong>Salinity:</strong> {pondReadings.sal} ppt</span>
                 </div>
               </div>
             );

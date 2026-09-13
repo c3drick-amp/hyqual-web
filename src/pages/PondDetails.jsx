@@ -12,6 +12,7 @@ import { getReportData } from "../data/reportPreviewData";
 import { exportReport } from "../utils/reportExport";
 import { useLiveReading } from "../hooks/useLiveReading";
 import { LIVE_DEVICE_TARGET } from "../data/liveDeviceConfig";
+import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import "./Dashboard.css";
 import "./FarmDetails.css";
 import "./PondDetails.css";
@@ -42,7 +43,8 @@ function PondDetails() {
 
   // Always call hooks unconditionally (React rule) — safe even before the
   // farm/pond-not-found check below, since useLiveReading doesn't depend on them.
-  const { reading: liveReading, loading: liveLoading } = useLiveReading();
+  const { reading: liveReading, history: liveHistory, loading: liveLoading } = useLiveReading();
+  const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
 
   if (!farm || !pond) return <p style={{ padding: 40 }}>Pond not found.</p>;
 
@@ -53,9 +55,12 @@ function PondDetails() {
   // If this is the pond wired to the real device, use its live data instead of
   // the static dummy values — everything else about the page works unchanged.
   const displayReadings = isLivePond && liveReading ? liveReading : staticReadings;
-  const displayStatus = getOverallStatus(displayReadings);
+  const displayStatus = isLivePond && deviceStatusReady && !deviceOnline
+    ? "offline"
+    : getOverallStatus(displayReadings);
 
-  const filteredLogs = historyLogs.filter((log) => log.status === historyFilter);
+  const displayedHistory = isLivePond && liveHistory.length > 0 ? liveHistory : historyLogs;
+  const filteredLogs = displayedHistory.filter((log) => log.status === historyFilter);
 
   // Exports exactly what's currently shown in the table (respects the active
   // Normal/Critical/Offline filter), as a real downloadable CSV.
@@ -87,7 +92,7 @@ function PondDetails() {
 
   const handleDownloadReport = (report) => {
     const format = "PDF";
-    const scopedData = getReportData(report.id, { farmId: farm.id, pondId: pond.id });
+    const scopedData = getReportData(report.id, { farmId: farm.id, pondId: pond.id }, liveHistory);
 
     if (!scopedData || scopedData.farms.length === 0) {
       alert("No data available to export for this pond in this report's date range.");

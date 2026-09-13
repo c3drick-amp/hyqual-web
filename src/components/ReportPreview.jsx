@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import { getReportData } from "../data/reportPreviewData";
+import { useLiveReading } from "../hooks/useLiveReading";
 import "./ReportPreview.css";
 
 const statusLabel = { normal: "NORMAL", moderate: "MODERATE", critical: "CRITICAL", offline: "NO DATA" };
@@ -10,7 +11,8 @@ const statusLabel = { normal: "NORMAL", moderate: "MODERATE", critical: "CRITICA
 // just that farm/pond instead of every farm. Leave undefined for the full report.
 function ReportPreview({ reportId, scope, onClose }) {
   const [farmIndex, setFarmIndex] = useState(0);
-  const report = getReportData(reportId, scope);
+  const { history: liveHistory } = useLiveReading();
+  const report = getReportData(reportId, scope, liveHistory);
 
   if (!report) {
     return (

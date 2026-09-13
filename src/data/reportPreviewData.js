@@ -1,6 +1,7 @@
 import { farms } from "./farmsData";
 import { getParamStatus } from "./thresholds";
 import { readingsPool, offlineEvents } from "./readingsPool";
+import { LIVE_DEVICE_TARGET } from "./liveDeviceConfig";
 
 // Report "definitions" — just which date range + label each summary report covers.
 // This is the ONLY part that's still hand-set; everything else below is computed
@@ -61,6 +62,18 @@ function formatValue(value, unit) {
   return unit ? `${value.toFixed(2)} ${unit}` : value.toFixed(2);
 }
 
+function liveRowsToReportRows(liveHistory) {
+  return liveHistory
+    .filter((row) => row.createdAt)
+    .map((row) => ({
+      recordedAt: row.createdAt,
+      temperature: row.temp,
+      phLevel: row.ph,
+      dissolvedOxygen: row.do,
+      salinity: row.sal,
+    }));
+}
+
 // Filters the readings pool the same way a Firestore query would:
 // WHERE farmId == X AND pondId == Y AND recordedAt BETWEEN start AND end
 function getReadingsFor(farmId, pondId, start, end) {
@@ -80,14 +93,20 @@ function getOfflineIncidentsFor(farmId, pondId, start, end) {
     }));
 }
 
-function buildPondReport(farmId, pond, start, end) {
-  const rows = getReadingsFor(farmId, pond.id, start, end);
+function buildPondReport(farmId, pond, start, end, liveHistory = []) {
+  const isLivePond = farmId === LIVE_DEVICE_TARGET.farmId && pond.id === LIVE_DEVICE_TARGET.pondId;
+  const rows = isLivePond && liveHistory.length > 0
+    ? liveRowsToReportRows(liveHistory)
+    : getReadingsFor(farmId, pond.id, start, end);
 
   const parameters = Object.values(paramMeta).map((meta) => {
     if (rows.length === 0) {
       return { parameter: meta.label, weeklyAvg: "—", min: "—", max: "—", status: "offline" };
     }
-    const values = rows.map((r) => r[meta.key]);
+    const values = rows.map((r) => r[meta.key]).filter((value) => value != null);
+    if (values.length === 0) {
+      return { parameter: meta.label, weeklyAvg: "—", min: "—", max: "—", status: "offline" };
+    }
     const avg = average(values);
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -107,6 +126,7 @@ function buildPondReport(farmId, pond, start, end) {
   const readingIncidents = [];
   rows.forEach((r) => {
     Object.values(paramMeta).forEach((meta) => {
+      if (r[meta.key] == null) return;
       const status = getParamStatus(meta.thresholdKey, r[meta.key]);
       if (status !== "normal") {
         readingIncidents.push({
@@ -136,7 +156,7 @@ function buildPondReport(farmId, pond, start, end) {
  *   or { farmId, pondId } to limit to one specific pond within that farm.
  *   Leave empty/undefined for the full multi-farm report (Reports & Analytics).
  */
-export function getReportData(reportId, scope = {}) {
+export function getReportData(reportId, scope = {}, liveHistory = []) {
   const def = REPORT_DEFINITIONS[reportId];
   if (!def) return null;
 
@@ -147,7 +167,7 @@ export function getReportData(reportId, scope = {}) {
     // Narrow down to just the requested pond, if one was specified
     const targetPonds = scope.pondId ? farm.ponds.filter((p) => p.id === scope.pondId) : farm.ponds;
 
-    const ponds = targetPonds.map((pond) => buildPondReport(farm.id, pond, def.start, def.end));
+    const ponds = targetPonds.map((pond) => buildPondReport(farm.id, pond, def.start, def.end, liveHistory));
 
     const allStatuses = ponds.flatMap((p) => p.parameters.map((param) => param.status));
     const severity = { normal: 0, moderate: 1, critical: 2, offline: 1 };
@@ -173,10 +193,15 @@ export function getReportData(reportId, scope = {}) {
     criticalOverall: farmReports.filter((f) => f.overallStatus === "critical").length,
   };
 
+  const liveRows = liveRowsToReportRows(liveHistory);
+  const liveDates = liveRows.map((row) => row.recordedAt.slice(0, 10)).sort();
+
   return {
     title: def.title,
-    dateRange: def.dateRangeLabel,
-    generatedDate: def.generatedDate,
+    dateRange: liveDates.length > 0
+      ? `${liveDates[0]} - ${liveDates[liveDates.length - 1]}`
+      : def.dateRangeLabel,
+    generatedDate: liveDates.length > 0 ? new Date().toISOString().slice(0, 10) : def.generatedDate,
     preparedFor: "BFAR Oriental Mindoro",
     reportId: def.reportId,
     summary,

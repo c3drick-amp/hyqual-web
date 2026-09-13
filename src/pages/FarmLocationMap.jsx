@@ -5,6 +5,7 @@ import { Bell, MapPin, Layers } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { farms } from "../data/farmsData";
 import { getOverallStatus } from "../data/thresholds";
+import { useDeviceStatus } from "../hooks/useDeviceStatus";
 import "./FarmLocationMap.css";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
@@ -23,13 +24,15 @@ function FarmLocationMap() {
   const [selectedFarmId, setSelectedFarmId] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
+  const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
 
   const farmsWithStatus = farms.map((farm) => {
     const mainPond = farm.ponds[0];
-    const status = getOverallStatus({
+    const qualityStatus = getOverallStatus({
       temp: mainPond.temp, ph: mainPond.ph, do: mainPond.do, sal: mainPond.sal,
     });
-    return { ...farm, status };
+    const deviceOffline = farm.id === 3 && mainPond.id === "A" && deviceStatusReady && !deviceOnline;
+    return { ...farm, status: deviceOffline ? "offline" : qualityStatus };
   });
 
   const selectedFarm = farmsWithStatus.find((f) => f.id === selectedFarmId);

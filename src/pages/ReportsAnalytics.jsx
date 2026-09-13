@@ -8,6 +8,7 @@ import { trendData, statusDistribution, summaryReports, availableFormats } from 
 import "./ReportsAnalytics.css";
 import { getReportData } from "../data/reportPreviewData";
 import { exportReport } from "../utils/reportExport";
+import { useLiveReading } from "../hooks/useLiveReading";
 
 const statusFilters = ["All", "Normal", "Critical", "Warning", "Offline"];
 
@@ -17,9 +18,10 @@ const chartColors = { normal: "#1f9d6e", critical: "#dc2626", warning: "#f59e0b"
 function ReportsAnalytics() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [showDateModal, setShowDateModal] = useState(false);
-  const [customRange, setCustomRange] = useState(null);
+  const [, setCustomRange] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [previewReportId, setPreviewReportId] = useState(null);
+  const { history: liveHistory } = useLiveReading();
   const [selectedFormats, setSelectedFormats] = useState(
     Object.fromEntries(summaryReports.map((r) => [r.id, r.defaultFormat]))
   );
@@ -47,7 +49,7 @@ function ReportsAnalytics() {
 
   const handleDownload = (report) => {
     const format = selectedFormats[report.id];
-    const fullData = getReportData(report.id);
+    const fullData = getReportData(report.id, {}, liveHistory);
 
     if (!fullData) {
       alert("No data available to export for this report yet.");

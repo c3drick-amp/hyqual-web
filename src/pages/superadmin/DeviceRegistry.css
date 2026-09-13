@@ -19,7 +19,7 @@
 
 .dr-table-header-row {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1fr 1fr;
+  grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1fr 1fr .8fr 1.6fr;
   padding: 14px 0;
   border-bottom: 1px solid #f3f4f6;
   font-size: 11px;
@@ -30,7 +30,7 @@
 
 .dr-table-row {
   display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1fr 1fr;
+  grid-template-columns: 1fr 1.2fr 1fr 1.5fr 1fr 1fr .8fr 1.6fr;
   align-items: center;
   padding: 16px 0;
   border-bottom: 1px solid #f3f4f6;
@@ -43,6 +43,29 @@
 }
 
 .dr-muted {
+  color: #6b7280;
+}
+
+.dr-sensor-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dr-sensor-dot {
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 5px;
+}
+
+.dr-sensor-online {
+  background: #e6f6ee;
+  color: #1f9d6e;
+}
+
+.dr-sensor-offline {
+  background: #f3f4f6;
   color: #6b7280;
 }
 
