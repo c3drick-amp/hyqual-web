@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Eye, EyeOff } from "lucide-react";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -16,6 +16,11 @@ function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -38,6 +43,13 @@ function Profile() {
 
   const handleChange = (field) => (e) => {
     setForm({ ...form, [field]: e.target.value });
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
   };
 
   const handleSave = () => {
@@ -101,6 +113,11 @@ function Profile() {
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
+      });
+      setShowPasswords({
+        currentPassword: false,
+        newPassword: false,
+        confirmPassword: false,
       });
       setShowPasswordForm(false);
     } catch (err) {
@@ -249,42 +266,94 @@ function Profile() {
                 <div className="profile-fields-row">
                   <div className="profile-field">
                     <label>Current Password</label>
-                    <input
-                      type="password"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          currentPassword: e.target.value,
-                        })
-                      }
-                    />
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswords.currentPassword ? "text" : "password"}
+                        value={passwordForm.currentPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            currentPassword: e.target.value,
+                          })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility("currentPassword")}
+                        aria-label={
+                          showPasswords.currentPassword
+                            ? "Hide current password"
+                            : "Show current password"
+                        }
+                      >
+                        {showPasswords.currentPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="profile-field">
                     <label>New Password</label>
-                    <input
-                      type="password"
-                      value={passwordForm.newPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          newPassword: e.target.value,
-                        })
-                      }
-                    />
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswords.newPassword ? "text" : "password"}
+                        value={passwordForm.newPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            newPassword: e.target.value,
+                          })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility("newPassword")}
+                        aria-label={
+                          showPasswords.newPassword ? "Hide new password" : "Show new password"
+                        }
+                      >
+                        {showPasswords.newPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="profile-field">
                     <label>Confirm New Password</label>
-                    <input
-                      type="password"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) =>
-                        setPasswordForm({
-                          ...passwordForm,
-                          confirmPassword: e.target.value,
-                        })
-                      }
-                    />
+                    <div className="password-input-wrapper">
+                      <input
+                        type={showPasswords.confirmPassword ? "text" : "password"}
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            confirmPassword: e.target.value,
+                          })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => togglePasswordVisibility("confirmPassword")}
+                        aria-label={
+                          showPasswords.confirmPassword
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
+                      >
+                        {showPasswords.confirmPassword ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -302,6 +371,11 @@ function Profile() {
                       setShowPasswordForm(false);
                       setPasswordError("");
                       setPasswordSuccess("");
+                      setShowPasswords({
+                        currentPassword: false,
+                        newPassword: false,
+                        confirmPassword: false,
+                      });
                       setPasswordForm({
                         currentPassword: "",
                         newPassword: "",

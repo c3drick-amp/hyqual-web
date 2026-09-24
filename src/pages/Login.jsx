@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -22,11 +22,12 @@ function Login() {
   const [resetError, setResetError] = useState("");
   const [resetMessage, setResetMessage] = useState("");
   const [isResetMode, setIsResetMode] = useState(false);
+  const isSigningIn = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
+      if (currentUser && !isSigningIn.current) {
         const storedUser = localStorage.getItem("hyqual_user");
         const role = JSON.parse(storedUser || "null")?.role;
         navigate(role === "Superadmin" ? "/superadmin/overview" : "/dashboard", {
@@ -41,6 +42,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    isSigningIn.current = true;
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -76,6 +78,7 @@ function Login() {
     } catch (err) {
       console.error("Login error:", err);
       setError("Invalid email or password.");
+      isSigningIn.current = false;
     }
   };
 
@@ -130,7 +133,6 @@ function Login() {
         {!isResetMode ? (
           <>
             <h1>Sign in to your portal</h1>
-            <p className="subtext">Select the portal that matches your account.</p>
 
             <form onSubmit={handleSubmit}>
               <label htmlFor="email">Email</label>
