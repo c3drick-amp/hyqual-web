@@ -7,7 +7,7 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
@@ -24,6 +24,13 @@ function Login() {
   const [isResetMode, setIsResetMode] = useState(false);
   const isSigningIn = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.reason) {
+      setError(location.state.reason);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {

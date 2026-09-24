@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'Superadmin'",
+
+    "presence": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "status": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'Superadmin'"
+    },
+
+    "assignment": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'Superadmin'"
+    },
+
+    "battery": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'Superadmin'"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperadmin() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Superadmin';
+    }
+
+    function isOwnerOrAdmin(userId) {
+      return signedIn() && (request.auth.uid == userId || isSuperadmin());
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && (request.auth.uid == userId || isSuperadmin());
+      allow update: if signedIn() && (request.auth.uid == userId || isSuperadmin());
+      allow delete: if isSuperadmin();
+    }
+
+    match /farms/{farmId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperadmin();
+    }
+
+    match /ponds/{pondId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperadmin();
+    }
+
+    match /alerts/{alertId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperadmin();
+    }
+
+    match /approvals/{approvalId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperadmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperadmin();
+    }
+
+    match /devices/{deviceId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isSuperadmin();
+    }
+  }
+}

@@ -95,7 +95,7 @@ function App() {
         <Route
           path="/superadmin/overview"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Superadmin"]}>
               <SuperadminOverview />
             </ProtectedRoute>
           }
@@ -103,7 +103,7 @@ function App() {
         <Route
           path="/superadmin/users"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Superadmin"]}>
               <UserManagement />
             </ProtectedRoute>
           }
@@ -111,7 +111,7 @@ function App() {
         <Route
           path="/superadmin/users/archived"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Superadmin"]}>
               <ArchivedAccounts />
             </ProtectedRoute>
           }
@@ -119,7 +119,7 @@ function App() {
         <Route
           path="/superadmin/devices"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Superadmin"]}>
               <DeviceRegistry />
             </ProtectedRoute>
           }
@@ -127,7 +127,7 @@ function App() {
         <Route
           path="/superadmin/logs"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Superadmin"]}>
               <AuditLogs />
             </ProtectedRoute>
           }
@@ -135,7 +135,7 @@ function App() {
         <Route
           path="/superadmin/approvals"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Superadmin"]}>
               <AccountApproval />
             </ProtectedRoute>
           }
