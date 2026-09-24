@@ -1,13 +1,22 @@
-import { addDoc, collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { db, userCreationAuth } from "../firebase";
 import { useFirestoreCollection } from "./useFirestoreCollection";
 
 export function useUsers() {
   const { items: users, loading, error } = useFirestoreCollection("users");
 
   const addUser = async (userData) => {
-    await addDoc(collection(db, "users"), {
-      ...userData,
+    const { email, password, ...profileData } = userData;
+    const userCredential = await createUserWithEmailAndPassword(
+      userCreationAuth,
+      email,
+      password
+    );
+
+    await setDoc(doc(db, "users", userCredential.user.uid), {
+      ...profileData,
+      email,
       status: "Active",
       lastSeen: "Just added",
       archived: false,

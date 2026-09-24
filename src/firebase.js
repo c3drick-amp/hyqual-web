@@ -16,6 +16,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const userCreationApp = initializeApp(firebaseConfig, "userCreation");
 
 // Note for developer (me lol)
 // These are the three pieces the rest of the app will import and use directly:
@@ -23,6 +24,7 @@ const app = initializeApp(firebaseConfig);
 // db -> for reading/writing Firestore data (farms, ponds, readings, etc.)
 // storage -> for uploaded files (e.g. generated reports, profile photos)
 export const auth = getAuth(app);
+export const userCreationAuth = getAuth(userCreationApp);
 export const db = getFirestore(app);
 export const storage = getStorage(app)
 ;

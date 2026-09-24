@@ -1,10 +1,27 @@
-.profile-card {
+﻿.profile-card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 32px;
   display: flex;
   gap: 48px;
+}
+
+.password-change-form {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.password-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.password-form-actions .profile-btn {
+  width: auto;
+  min-width: 150px;
 }
 
 .profile-left {

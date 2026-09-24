@@ -8,6 +8,7 @@ import FarmLocationMap from "./pages/FarmLocationMap";
 import Alerts from "./pages/Alerts";
 import ReportsAnalytics from "./pages/ReportsAnalytics";
 import Profile from "./pages/Profile";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import SuperadminOverview from "./pages/superadmin/SuperadminOverview";
 import UserManagement from "./pages/superadmin/UserManagement";
@@ -15,28 +16,130 @@ import ArchivedAccounts from "./pages/superadmin/ArchivedAccounts";
 import DeviceRegistry from "./pages/superadmin/DeviceRegistry";
 import AuditLogs from "./pages/superadmin/AuditLogs";
 import AccountApproval from "./pages/superadmin/AccountApproval";
+import { useUserPresence } from "./hooks/useUserPresence";
 
 function App() {
+  useUserPresence();
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/multi-farm" element={<MultiFarmMonitoring />} />
-        <Route path="/multi-farm/:farmId" element={<FarmDetails />} />
-        <Route path="/multi-farm/:farmId/:pondId" element={<PondDetails />} />
-        <Route path="/farm-map" element={<FarmLocationMap />} />
-        <Route path="/alerts" element={<Alerts />} />
-        <Route path="/reports" element={<ReportsAnalytics />} />
-        <Route path="/profile" element={<Profile />} />
 
-        <Route path="/superadmin/overview" element={<SuperadminOverview />} />
-        <Route path="/superadmin/users" element={<UserManagement />} />
-        <Route path="/superadmin/users/archived" element={<ArchivedAccounts />} />
-        <Route path="/superadmin/devices" element={<DeviceRegistry />} />
-        <Route path="/superadmin/logs" element={<AuditLogs />} />
-        <Route path="/superadmin/approvals" element={<AccountApproval />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/multi-farm"
+          element={
+            <ProtectedRoute>
+              <MultiFarmMonitoring />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/multi-farm/:farmId"
+          element={
+            <ProtectedRoute>
+              <FarmDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/multi-farm/:farmId/:pondId"
+          element={
+            <ProtectedRoute>
+              <PondDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/farm-map"
+          element={
+            <ProtectedRoute>
+              <FarmLocationMap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute>
+              <Alerts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <ReportsAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/superadmin/overview"
+          element={
+            <ProtectedRoute>
+              <SuperadminOverview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/users"
+          element={
+            <ProtectedRoute>
+              <UserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/users/archived"
+          element={
+            <ProtectedRoute>
+              <ArchivedAccounts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/devices"
+          element={
+            <ProtectedRoute>
+              <DeviceRegistry />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/logs"
+          element={
+            <ProtectedRoute>
+              <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/approvals"
+          element={
+            <ProtectedRoute>
+              <AccountApproval />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

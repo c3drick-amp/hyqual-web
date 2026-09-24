@@ -1,7 +1,9 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutGrid, Activity, MapPin, AlertTriangle, BarChart2, LogOut } from "lucide-react";
+import { signOut } from "firebase/auth";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
+import { auth } from "../firebase";
 import { getFullName, getInitials } from "../utils/userHelpers";
 import "./Sidebar.css";
 
@@ -18,9 +20,10 @@ function Sidebar() {
   const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
   const currentUser = storedUser || { role: "Unknown" };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await signOut(auth);
     localStorage.removeItem("hyqual_user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   return (

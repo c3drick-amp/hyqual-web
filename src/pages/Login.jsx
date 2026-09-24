@@ -1,5 +1,9 @@
-import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { useEffect, useState } from "react";
+import {
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
@@ -14,7 +18,25 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [isResetMode, setIsResetMode] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        const storedUser = localStorage.getItem("hyqual_user");
+        const role = JSON.parse(storedUser || "null")?.role;
+        navigate(role === "Superadmin" ? "/superadmin/overview" : "/dashboard", {
+          replace: true,
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,6 +79,46 @@ function Login() {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setResetError("");
+    setResetMessage("");
+
+    const trimmedEmail = resetEmail.trim();
+
+    if (!trimmedEmail) {
+      setResetError("Please enter your email address.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, trimmedEmail);
+      setResetMessage("Password reset email sent. Check your inbox and follow the link to reset your password.");
+      setResetEmail("");
+    } catch (err) {
+      console.error("Password reset error:", err);
+      const message =
+        err?.code === "auth/user-not-found"
+          ? "No account found with that email address."
+          : "Unable to send reset email. Please try again.";
+      setResetError(message);
+    }
+  };
+
+  const handleForgotPasswordClick = () => {
+    setIsResetMode(true);
+    setResetError("");
+    setResetMessage("");
+    setEmail("");
+  };
+
+  const handleBackToLogin = () => {
+    setIsResetMode(false);
+    setResetError("");
+    setResetMessage("");
+    setResetEmail("");
+  };
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -65,49 +127,91 @@ function Login() {
           <img src={logoText} alt="HyQual" className="logo-text-img" />
         </div>
 
-        <h1>Sign in to your portal</h1>
-        <p className="subtext">Select the portal that matches your account.</p>
+        {!isResetMode ? (
+          <>
+            <h1>Sign in to your portal</h1>
+            <p className="subtext">Select the portal that matches your account.</p>
 
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+            <form onSubmit={handleSubmit}>
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
 
-          <label htmlFor="password">Password</label>
-          <div className="password-field">
-            <input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+              <label htmlFor="password">Password</label>
+              <div className="password-field">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="toggle-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {error && <p className="login-error">{error}</p>}
+
+              <button type="submit" className="sign-in-btn">
+                Sign In <ArrowRight size={18} />
+              </button>
+            </form>
+
             <button
               type="button"
-              className="toggle-password"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="forgot-password"
+              onClick={handleForgotPasswordClick}
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              Forgot Password?
             </button>
-          </div>
+          </>
+        ) : (
+          <>
+            <h1>Reset your password</h1>
+            <p className="subtext">
+              Enter the email address for your account and we’ll send a reset link.
+            </p>
 
-          {error && <p className="login-error">{error}</p>}
+            <form onSubmit={handleForgotPassword}>
+              <label htmlFor="reset-email">Email address</label>
+              <input
+                id="reset-email"
+                type="email"
+                placeholder="Email address"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
 
-          <button type="submit" className="sign-in-btn">
-            Sign In <ArrowRight size={18} />
-          </button>
-        </form>
+              {resetError && <p className="login-error">{resetError}</p>}
+              {resetMessage && <p className="login-success">{resetMessage}</p>}
 
-        <a href="#" className="forgot-password">
-          Forgot Password?
-        </a>
+              <button type="submit" className="sign-in-btn reset-btn">
+                Send Reset Link
+              </button>
+            </form>
+
+            <button
+              type="button"
+              className="forgot-password back-to-login"
+              onClick={handleBackToLogin}
+            >
+              Back to sign in
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

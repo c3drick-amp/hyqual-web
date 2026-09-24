@@ -1,6 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutGrid, Users, Cpu, ClipboardList, ShieldCheck, LogOut } from "lucide-react";
+import { signOut } from "firebase/auth";
 import logoIcon from "../assets/hyqual-logo-icon.png";
+import { auth } from "../firebase";
 import { getFullName, getInitials } from "../utils/userHelpers";
 import "./SuperadminSidebar.css";
 
@@ -16,9 +18,10 @@ function SuperadminSidebar() {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await signOut(auth);
     localStorage.removeItem("hyqual_user");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   return (

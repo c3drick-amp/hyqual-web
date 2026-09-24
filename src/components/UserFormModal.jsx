@@ -4,7 +4,7 @@ import "./UserFormModal.css";
 
 const emptyForm = {
   firstName: "", lastName: "", middleName: "", phone: "", email: "",
-  role: "BFAR Admin", farmName: "", street: "", barangay: "", city: "",
+  password: "", role: "BFAR Admin", farmName: "", street: "", barangay: "", city: "",
 };
 
 function UserFormModal({ mode, initialData, onClose, onSubmit, onArchiveClick }) {
@@ -49,6 +49,20 @@ function UserFormModal({ mode, initialData, onClose, onSubmit, onArchiveClick })
           <label>Email address</label>
           <input value={form.email} onChange={handleChange("email")} placeholder="Email address" />
         </div>
+
+        {mode === "add" && (
+          <div className="uf-field">
+            <label>Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={handleChange("password")}
+              placeholder="At least 6 characters"
+              minLength={6}
+              required
+            />
+          </div>
+        )}
 
         <label className="uf-section-label">Role</label>
         <div className="uf-row">

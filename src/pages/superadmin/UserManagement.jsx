@@ -5,16 +5,47 @@ import SuperadminSidebar from "../../components/SuperadminSidebar";
 import UserFormModal from "../../components/UserFormModal";
 import ConfirmModal from "../../components/ConfirmModal";
 import { useUsers } from "../../hooks/useUsers";
+import { useFarms } from "../../hooks/useFarms";
+import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
+import { useUserPresence } from "../../hooks/useUserPresence";
 import "../Dashboard.css";
 import "./SuperadminOverview.css";
 import "./UserManagement.css";
 
 const roleOptions = ["All users", "BFAR Admin", "Farm Owner"];
-const statusOptions = ["All", "Active", "Deactivated"];
+const statusOptions = ["All", "Active", "Offline", "Pending"];
+
+function getAccountStatus(user, presence, approvals) {
+  if (user.status === "Pending" || user.approvalStatus === "Pending") return "Pending";
+  if (approvals.some((approval) => approval.userId === user.id && approval.status === "Pending")) return "Pending";
+  return presence[user.id]?.state === "online" ? "Active" : "Offline";
+}
+
+function normalizeReferenceId(value) {
+  return value == null ? "" : String(value).replace("user_", "");
+}
+
+function getUserFarmNames(user, farms) {
+  if (user.role !== "Farm Owner") return "—";
+
+  const userReferences = [user.id, user.uid, user.userId]
+    .filter(Boolean)
+    .map(normalizeReferenceId);
+  const assignedFarms = farms.filter((farm) => (
+    userReferences.includes(normalizeReferenceId(farm.ownerId))
+  ));
+
+  return assignedFarms.length > 0
+    ? assignedFarms.map((farm) => farm.name).join(", ")
+    : "Not assigned";
+}
 
 function UserManagement() {
   const navigate = useNavigate();
   const { users, addUser, updateUser, archiveUser } = useUsers();
+  const { farms } = useFarms();
+  const { items: approvals } = useFirestoreCollection("approvals");
+  const presence = useUserPresence(false);
 
   const [roleFilter, setRoleFilter] = useState("All users");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -24,15 +55,21 @@ function UserManagement() {
   const [formModal, setFormModal] = useState(null); // { mode: "add"|"edit", user? }
   const [confirmArchive, setConfirmArchive] = useState(null); // user being archived
 
-  const activeUsers = users.filter((u) => !u.archived);
-
-  const filteredUsers = activeUsers.filter((u) => {
-    if (roleFilter !== "All users" && u.role !== roleFilter) return false;
-    if (statusFilter !== "All" && u.status !== statusFilter) return false;
-    const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
-    if (!fullName.includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
+  const filteredUsers = users
+    .filter((u) => {
+      if (u.archived) return false;
+      const accountStatus = getAccountStatus(u, presence, approvals);
+      if (roleFilter !== "All users" && u.role !== roleFilter) return false;
+      if (statusFilter !== "All" && accountStatus !== statusFilter) return false;
+      const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
+      if (!fullName.includes(searchTerm.toLowerCase())) return false;
+      return true;
+    })
+    .map((user) => ({
+      ...user,
+      accountStatus: getAccountStatus(user, presence, approvals),
+      assignedFarmNames: getUserFarmNames(user, farms),
+    }));
 
   const handleAddSubmit = (formData) => addUser(formData);
   const handleEditSubmit = (formData) => updateUser(formModal.user.id, formData);
@@ -136,11 +173,11 @@ function UserManagement() {
 
               <span><span className="role-pill">{user.role}</span></span>
 
-              <span className="um-farm-cell">{user.farmName || "—"}</span>
+              <span className="um-farm-cell">{user.assignedFarmNames}</span>
 
               <span>
-                <span className={"status-dot-text status-dot-text-" + (user.status === "Active" ? "active" : "inactive")}>
-                  {user.status}
+                <span className={"status-dot-text status-dot-text-" + user.accountStatus.toLowerCase()}>
+                  {user.accountStatus}
                 </span>
               </span>
 

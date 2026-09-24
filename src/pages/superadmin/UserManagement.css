@@ -167,16 +167,24 @@
   color: #1f9d6e;
 }
 
+.status-dot-text-offline {
+  color: #6b7280;
+}
+
+.status-dot-text-offline::before {
+  background: #6b7280;
+}
+
+.status-dot-text-pending {
+  color: #d97706;
+}
+
+.status-dot-text-pending::before {
+  background: #d97706;
+}
+
 .status-dot-text-active::before {
   background: #1f9d6e;
-}
-
-.status-dot-text-inactive {
-  color: #dc2626;
-}
-
-.status-dot-text-inactive::before {
-  background: #dc2626;
 }
 
 .um-last-seen {
