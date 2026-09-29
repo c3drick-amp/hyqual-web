@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MapPin, Mail, Phone } from "lucide-react";
+import { MapPin, Mail, Phone } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import ConfirmModal from "../../components/ConfirmModal";
 import { useUsers } from "../../hooks/useUsers";
@@ -36,10 +36,6 @@ function ArchivedAccounts() {
             <h1>Archived Accounts</h1>
           </div>
           <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
             <span className="superadmin-badge">SUPERADMIN</span>
           </div>
         </div>

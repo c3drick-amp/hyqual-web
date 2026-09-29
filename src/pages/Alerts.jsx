@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, AlertTriangle, Calendar } from "lucide-react";
+import { AlertTriangle, Calendar } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
 import DateRangeModal from "../components/DateRangeModal";
 import { useAlerts } from "../hooks/useAlerts";
+import { getSeenAlertIds, markAlertSeen } from "../utils/seenAlerts";
 import "./Alerts.css";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
@@ -22,6 +23,7 @@ function Alerts() {
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
   const [customRange, setCustomRange] = useState(null);
+  const [seenAlertIds, setSeenAlertIds] = useState(() => getSeenAlertIds());
   const { alerts, loading, error } = useAlerts();
 
   const maxDays = { "24h": 1, "7d": 7, "30d": 30 };
@@ -33,6 +35,13 @@ function Alerts() {
     if (activeTimeFilter === "all") return true;
     return a.daysAgo <= maxDays[activeTimeFilter];
   });
+  const unseenAlerts = filteredAlerts.filter((alert) => !seenAlertIds.includes(alert.id));
+
+  const handleAlertOpen = (alert) => {
+    markAlertSeen(alert.id);
+    setSeenAlertIds((current) => current.includes(alert.id) ? current : [...current, alert.id]);
+    setSelectedAlert(alert);
+  };
 
   if (loading) return <p style={{ padding: 40 }}>Loading alerts...</p>;
   if (error) return <p style={{ padding: 40 }}>Unable to load alerts from Firebase.</p>;
@@ -45,12 +54,6 @@ function Alerts() {
         <div className="dashboard-header">
           <div>
             <h1>Alerts</h1>
-          </div>
-          <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
           </div>
         </div>
 
@@ -79,8 +82,8 @@ function Alerts() {
             </div>
           </div>
 
-          {filteredAlerts.map((alert) => (
-            <div className="alert-item" key={alert.id} onClick={() => setSelectedAlert(alert)}>
+          {unseenAlerts.map((alert) => (
+            <div className="alert-item" key={alert.id} onClick={() => handleAlertOpen(alert)}>
               <span className="icon-box icon-box-green">
                 <AlertTriangle size={18} />
               </span>
@@ -100,7 +103,7 @@ function Alerts() {
             </div>
           ))}
 
-          {filteredAlerts.length === 0 && (
+          {unseenAlerts.length === 0 && (
             <p className="al-empty">No alerts in this range.</p>
           )}
         </div>

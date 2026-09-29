@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Bell, Sprout } from "lucide-react";
+import { Sprout } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { getOverallStatus } from "../utils/thresholds";
 import { useLiveReading } from "../hooks/useLiveReading";
@@ -43,12 +43,6 @@ function FarmDetails() {
           <div>
             <h1>Multi-Farm Monitoring</h1>
             <p className="header-subtext">{farms.length} registered farms</p>
-          </div>
-          <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
           </div>
         </div>
 

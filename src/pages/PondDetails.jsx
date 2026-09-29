@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Bell, Thermometer, Droplet, Wind, Waves, Download, Calendar, Eye, AlertTriangle } from "lucide-react";
+import { Thermometer, Droplet, Wind, Waves, Download, Calendar, Eye, AlertTriangle } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import DateRangeModal from "../components/DateRangeModal";
 import ReportPreview from "../components/ReportPreview";
@@ -134,12 +134,6 @@ function PondDetails() {
               <div>
                 <h1>Multi-Farm Monitoring</h1>
                 <p className="header-subtext">{farms.length} registered farms</p>
-              </div>
-              <div className="header-actions">
-                <button className="icon-btn">
-                  <Bell size={18} />
-                  <span className="notif-badge">3</span>
-                </button>
               </div>
             </div>
 

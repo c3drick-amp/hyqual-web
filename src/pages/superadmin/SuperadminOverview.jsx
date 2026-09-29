@@ -1,4 +1,4 @@
-import { Bell, Users, Activity } from "lucide-react";
+import { Users, Activity } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import { useUsers } from "../../hooks/useUsers";
 import "../Dashboard.css";
@@ -24,10 +24,6 @@ function SuperadminOverview() {
           </div>
 
           <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
             <span className="superadmin-badge">SUPERADMIN</span>
           </div>
         </div>

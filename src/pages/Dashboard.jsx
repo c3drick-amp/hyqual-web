@@ -1,7 +1,7 @@
 import { useState, useRef} from "react"; 
 import { useNavigate } from "react-router-dom";
 import {
-  Activity, MapPin, AlertTriangle, Bell,
+  Activity, MapPin, AlertTriangle,
   Building2, WifiOff, CheckSquare, AlertCircle, Layers,
 } from "lucide-react";
 import { getOverallStatus } from "../utils/thresholds";
@@ -11,6 +11,7 @@ import { useFirestoreCollection } from "../hooks/useFirestoreCollection";
 import { buildReadingAlerts, getAlertTimestamp, normalizeStoredAlerts } from "../utils/alertHelpers";
 import { LIVE_DEVICE_TARGET } from "../config/liveDeviceConfig";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
+import { getSeenAlertIds, markAlertSeen } from "../utils/seenAlerts";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
 import "./Dashboard.css";
 import Sidebar from "../components/Sidebar";
@@ -30,6 +31,7 @@ function Dashboard() {
   const mapRef = useRef(null);
   const [showOverlay, setShowOverlay] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
+  const [seenAlertIds, setSeenAlertIds] = useState(() => getSeenAlertIds());
   const { reading: liveReading, history: liveHistory } = useLiveReading();
   const { statusReady: deviceStatusReady, deviceOnline } = useDeviceStatus();
   const { farms, loading: farmsLoading, error: farmsError } = useFarms();
@@ -84,6 +86,12 @@ function Dashboard() {
     action: alert.action ?? "Review the latest reading.",
     time: alert.displayTime,
   }));
+  const unseenWarnings = recentWarnings.filter((warning) => !seenAlertIds.includes(warning.id));
+
+  const handleWarningSeen = (alertId) => {
+    markAlertSeen(alertId);
+    setSeenAlertIds((current) => current.includes(alertId) ? current : [...current, alertId]);
+  };
 
   const visiblePins = farmsWithStatus.filter((farm) => {
     if (!showOverlay) return false;
@@ -120,10 +128,6 @@ function Dashboard() {
           </div>
 
           <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
             <button className="view-farms-btn" onClick={() => navigate("/multi-farm")}>
               View all farms →
             </button>
@@ -201,16 +205,27 @@ function Dashboard() {
           <div className="warnings-panel grid-warnings">
             <div className="warnings-panel-header">
               <h3>Recent early warnings</h3>
+              {unseenWarnings.length > 0 && (
+                <span className="warning-count" aria-label={`${unseenWarnings.length} unseen alerts`}>
+                  {unseenWarnings.length}
+                </span>
+              )}
               <span className="panel-link" onClick={() => navigate("/alerts")}>
                 Open early warning
               </span>
             </div>
 
-            {recentWarnings.map((w) => (
+            {unseenWarnings.map((w) => (
               <div
                 className="warning-item"
                 key={w.id}
-                onClick={() => navigate(`/multi-farm/${w.farmId}`)}
+                onClick={() => handleWarningSeen(w.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") handleWarningSeen(w.id);
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Mark ${w.farm} alert as seen`}
                 style={{ cursor: "pointer" }}
               >
                 <div className="warning-item-top">
@@ -227,6 +242,7 @@ function Dashboard() {
                 <p className="warning-time">{w.time}</p>
               </div>
             ))}
+            {unseenWarnings.length === 0 && <p className="warning-empty">No new alerts.</p>}
           </div>
 
           <div className="map-card grid-map">

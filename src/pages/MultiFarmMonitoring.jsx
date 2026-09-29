@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Search, Waves } from "lucide-react";
+import { Search, Waves } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { getOverallStatus, getParamStatus } from "../utils/thresholds";
 import { useLiveReading } from "../hooks/useLiveReading";
@@ -68,12 +68,6 @@ function MultiFarmMonitoring() {
             <p className="header-subtext">{farmsWithStatus.length} registered farms</p>
           </div>
 
-          <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
-          </div>
         </div>
 
         <div className="mfm-toolbar">

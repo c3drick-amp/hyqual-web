@@ -86,6 +86,60 @@ describe("Login page", () => {
     expect(screen.queryByText("Superadmin Overview")).not.toBeInTheDocument();
   });
 
+  test("blocks superadmin users from administrator routes", async () => {
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback({ uid: "superadmin-123", email: "superadmin@example.com" });
+      return () => {};
+    });
+    getDoc.mockResolvedValue({ exists: () => true, data: () => ({ role: "Superadmin" }) });
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["BFAR Admin", "Farm Owner"]}>
+                <div>Admin Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/superadmin/overview" element={<div>Superadmin Overview</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Superadmin Overview")).toBeInTheDocument();
+    expect(screen.queryByText("Admin Dashboard")).not.toBeInTheDocument();
+  });
+
+  test("allows administrator roles into administrator routes", async () => {
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback({ uid: "admin-123", email: "admin@example.com" });
+      return () => {};
+    });
+    getDoc.mockResolvedValue({ exists: () => true, data: () => ({ role: "BFAR Admin" }) });
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["BFAR Admin", "Farm Owner"]}>
+                <div>Admin Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/superadmin/overview" element={<div>Superadmin Overview</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Admin Dashboard")).toBeInTheDocument();
+    expect(screen.queryByText("Superadmin Overview")).not.toBeInTheDocument();
+  });
+
   test("blocks pending or archived accounts from protected routes", async () => {
     onAuthStateChanged.mockImplementation((auth, callback) => {
       callback({ uid: "user-456", email: "pending@example.com" });

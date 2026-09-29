@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, UserPlus, Archive, Search, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { UserPlus, Archive, Search, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import UserFormModal from "../../components/UserFormModal";
 import ConfirmModal from "../../components/ConfirmModal";
@@ -86,10 +86,6 @@ function UserManagement() {
           </div>
 
           <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
             <span className="superadmin-badge">SUPERADMIN</span>
             <button className="add-user-btn" onClick={() => setFormModal({ mode: "add" })}>
               <UserPlus size={16} /> Add user

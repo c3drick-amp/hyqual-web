@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Calendar, LogIn, FileText, UserPlus } from "lucide-react";
+import { Calendar, LogIn, FileText, UserPlus } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import DateRangeModal from "../../components/DateRangeModal";
 import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
@@ -50,10 +50,6 @@ function AuditLogs() {
             <p className="header-subtext">Audit trail of monitoring activity, notifications, and user actions</p>
           </div>
           <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
             <span className="superadmin-badge">SUPERADMIN</span>
           </div>
         </div>

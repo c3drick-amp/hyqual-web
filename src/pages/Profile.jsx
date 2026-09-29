@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -138,12 +138,6 @@ function Profile() {
         <div className="dashboard-header">
           <div>
             <h1>Profile</h1>
-          </div>
-          <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
           </div>
         </div>
 

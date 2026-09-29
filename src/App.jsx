@@ -18,6 +18,8 @@ import AuditLogs from "./pages/superadmin/AuditLogs";
 import AccountApproval from "./pages/superadmin/AccountApproval";
 import { useUserPresence } from "./hooks/useUserPresence";
 
+const ADMIN_ROLES = ["BFAR Admin", "Farm Owner"];
+
 function App() {
   useUserPresence();
 
@@ -30,7 +32,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <Dashboard />
             </ProtectedRoute>
           }
@@ -38,7 +40,7 @@ function App() {
         <Route
           path="/multi-farm"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <MultiFarmMonitoring />
             </ProtectedRoute>
           }
@@ -46,7 +48,7 @@ function App() {
         <Route
           path="/multi-farm/:farmId"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <FarmDetails />
             </ProtectedRoute>
           }
@@ -54,7 +56,7 @@ function App() {
         <Route
           path="/multi-farm/:farmId/:pondId"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <PondDetails />
             </ProtectedRoute>
           }
@@ -62,7 +64,7 @@ function App() {
         <Route
           path="/farm-map"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <FarmLocationMap />
             </ProtectedRoute>
           }
@@ -70,7 +72,7 @@ function App() {
         <Route
           path="/alerts"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <Alerts />
             </ProtectedRoute>
           }
@@ -78,7 +80,7 @@ function App() {
         <Route
           path="/reports"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={ADMIN_ROLES}>
               <ReportsAnalytics />
             </ProtectedRoute>
           }

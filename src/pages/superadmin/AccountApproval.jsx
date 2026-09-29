@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { X } from "lucide-react";
-import { Bell } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import Modal from "../../components/Modal";
 import { db } from "../../firebase";
@@ -44,10 +43,6 @@ function AccountApproval() {
             <h1>Account Approval</h1>
           </div>
           <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
             <span className="superadmin-badge">SUPERADMIN</span>
           </div>
         </div>

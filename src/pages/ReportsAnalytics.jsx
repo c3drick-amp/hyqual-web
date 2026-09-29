@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Calendar, FileText, Download, ChevronDown, Eye } from "lucide-react";
+import { Calendar, FileText, Download, ChevronDown, Eye } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Sidebar from "../components/Sidebar";
 import DateRangeModal from "../components/DateRangeModal";
@@ -10,6 +10,7 @@ import { getReportData } from "../utils/reportPreview";
 import { exportReport } from "../utils/reportExport";
 import { useLiveReading } from "../hooks/useLiveReading";
 import { useFarms } from "../hooks/useFarms";
+import ReportsSection from "../components/ReportsSection";
 
 const statusFilters = ["All", "Normal", "Critical", "Warning", "Offline"];
 
@@ -105,12 +106,6 @@ function ReportsAnalytics() {
               <div>
                 <h1>Reports &amp; Analytics</h1>
               </div>
-              <div className="header-actions">
-                <button className="icon-btn">
-                  <Bell size={18} />
-                  <span className="notif-badge">3</span>
-                </button>
-              </div>
             </div>
 
             <div className="filter-pills" style={{ marginBottom: 20 }}>
@@ -181,6 +176,8 @@ function ReportsAnalytics() {
                 ))}
               </div>
             </div>
+
+            <ReportsSection />
 
             <div className="summary-reports-card">
               <h3>Summary reports</h3>

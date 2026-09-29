@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleMap, useJsApiLoader, Marker } from "@react-google-maps/api";
-import { Bell, MapPin, Layers } from "lucide-react";
+import { MapPin, Layers } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { getOverallStatus } from "../utils/thresholds";
 import { useDeviceStatus } from "../hooks/useDeviceStatus";
@@ -72,12 +72,6 @@ function FarmLocationMap() {
         <div className="dashboard-header">
           <div>
             <h1>Farm Locations</h1>
-          </div>
-          <div className="header-actions">
-            <button className="icon-btn">
-              <Bell size={18} />
-              <span className="notif-badge">3</span>
-            </button>
           </div>
         </div>
 
