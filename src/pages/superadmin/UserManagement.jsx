@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserPlus, Archive, Search, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { UserPlus, Archive, Search, ChevronDown, Pencil, Trash2, Eye } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import UserFormModal from "../../components/UserFormModal";
 import ConfirmModal from "../../components/ConfirmModal";
+import Modal from "../../components/Modal";
 import { useUsers } from "../../hooks/useUsers";
 import { useFarms } from "../../hooks/useFarms";
 import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
@@ -40,6 +41,23 @@ function getUserFarmNames(user, farms) {
     : "Not assigned";
 }
 
+function getLastSeen(user, presence, now) {
+  if (presence[user.id]?.state === "online") return "Online now";
+
+  const timestamp = presence[user.id]?.lastChanged;
+  const lastSeen = Number.isFinite(timestamp)
+    ? new Date(timestamp)
+    : user.lastSeen?.toDate?.() || new Date(user.lastSeen);
+
+  if (Number.isNaN(lastSeen.getTime())) return user.lastSeen || "Never";
+  const minutesAgo = Math.max(0, Math.floor((now - lastSeen.getTime()) / 60000));
+  if (minutesAgo < 1) return "Just now";
+  if (minutesAgo < 60) return `${minutesAgo} min ago`;
+  const hoursAgo = Math.floor(minutesAgo / 60);
+  if (hoursAgo < 24) return `${hoursAgo} hr ago`;
+  return lastSeen.toLocaleString();
+}
+
 function UserManagement() {
   const navigate = useNavigate();
   const { users, addUser, updateUser, archiveUser } = useUsers();
@@ -51,13 +69,24 @@ function UserManagement() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [profileUser, setProfileUser] = useState(null);
+  const [now, setNow] = useState(0);
 
   const [formModal, setFormModal] = useState(null); // { mode: "add"|"edit", user? }
   const [confirmArchive, setConfirmArchive] = useState(null); // user being archived
 
+  useEffect(() => {
+    const initialUpdate = window.setTimeout(() => setNow(Date.now()), 0);
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => {
+      window.clearTimeout(initialUpdate);
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const filteredUsers = users
     .filter((u) => {
-      if (u.archived) return false;
+      if (u.archived || u.role === "Superadmin") return false;
       const accountStatus = getAccountStatus(u, presence, approvals);
       if (roleFilter !== "All users" && u.role !== roleFilter) return false;
       if (statusFilter !== "All" && accountStatus !== statusFilter) return false;
@@ -162,7 +191,9 @@ function UserManagement() {
               <div className="um-user-cell">
                 <div className="user-avatar">{user.firstName[0]}{user.lastName[0]}</div>
                 <div>
-                  <p className="um-user-name">{user.firstName} {user.lastName}</p>
+                  <button className="um-user-name" onClick={() => setProfileUser(user)}>
+                    {user.firstName} {user.lastName}
+                  </button>
                   <p className="um-user-email">{user.email}</p>
                 </div>
               </div>
@@ -177,9 +208,17 @@ function UserManagement() {
                 </span>
               </span>
 
-              <span className="um-last-seen">{user.lastSeen}</span>
+              <span className="um-last-seen">{getLastSeen(user, presence, now)}</span>
 
               <span className="um-row-actions">
+                <button
+                  className="row-action-btn"
+                  aria-label={`View profile for ${user.firstName} ${user.lastName}`}
+                  title="View profile"
+                  onClick={() => setProfileUser(user)}
+                >
+                  <Eye size={16} />
+                </button>
                 <button className="row-action-btn row-action-danger" onClick={() => setConfirmArchive(user)}>
                   <Trash2 size={16} />
                 </button>
@@ -222,6 +261,28 @@ function UserManagement() {
           onClose={() => setConfirmArchive(null)}
           onConfirm={() => archiveUser(confirmArchive.id)}
         />
+      )}
+
+      {profileUser && (
+        <Modal onClose={() => setProfileUser(null)}>
+          <div className="um-profile-content">
+            <div className="um-profile-heading">
+              <div className="user-avatar">{profileUser.firstName[0]}{profileUser.lastName[0]}</div>
+              <div>
+                <h2>{profileUser.firstName} {profileUser.lastName}</h2>
+                <span className="role-pill">{profileUser.role}</span>
+              </div>
+            </div>
+            <dl className="um-profile-details">
+              <div><dt>Email</dt><dd>{profileUser.email || "—"}</dd></div>
+              <div><dt>Phone</dt><dd>{profileUser.phone || "—"}</dd></div>
+              <div><dt>Farm</dt><dd>{profileUser.farmName || getUserFarmNames(profileUser, farms)}</dd></div>
+              <div><dt>Address</dt><dd>{[profileUser.street, profileUser.barangay, profileUser.city].filter(Boolean).join(", ") || "—"}</dd></div>
+              <div><dt>Status</dt><dd>{getAccountStatus(profileUser, presence, approvals)}</dd></div>
+              <div><dt>Last seen</dt><dd>{getLastSeen(profileUser, presence, now)}</dd></div>
+            </dl>
+          </div>
+        </Modal>
       )}
     </div>
   );

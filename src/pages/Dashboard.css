@@ -169,25 +169,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  column-gap: 8px;
   margin-bottom: 12px;
 }
 
 .warnings-panel-header h3 {
   font-size: 14px;
   color: #111827;
-}
-
-.warning-count {
-  min-width: 20px;
-  height: 20px;
-  margin-right: auto;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: #0d5c46;
-  color: #fff;
-  font-size: 11px;
-  line-height: 20px;
-  text-align: center;
 }
 
 .warnings-panel-header a {

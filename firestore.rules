@@ -41,8 +41,13 @@ service cloud.firestore {
     }
 
     match /auditLogs/{logId} {
-      allow read: if signedIn();
-      allow create, update, delete: if isSuperadmin();
+      allow read: if isSuperadmin();
+      allow create: if signedIn()
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'actorId', 'actor', 'actorRole', 'type', 'action', 'detail', 'createdAt'
+        ]);
+      allow update, delete: if false;
     }
 
     match /devices/{deviceId} {

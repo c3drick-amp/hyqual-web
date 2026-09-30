@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import {
+  ACTIVE_AUTH_SESSION_KEY,
+  hasActiveAuthSession,
+  hasRememberedSession,
+} from "../utils/authSession";
+import { markUserOffline } from "../utils/presence";
 
 function getAccountBlockReason(userData = {}) {
   if (userData.archived === true) {
@@ -31,19 +37,43 @@ function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
 
   useEffect(() => {
+    let revokedReason = "";
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         setUser(null);
         setRole(null);
-        setBlockedReason("");
+        setBlockedReason(revokedReason);
+        setLoading(false);
+        return;
+      }
+
+      if (!hasRememberedSession() && !hasActiveAuthSession()) {
+        sessionStorage.removeItem(ACTIVE_AUTH_SESSION_KEY);
+        await signOut(auth);
+        setUser(null);
+        setRole(null);
         setLoading(false);
         return;
       }
 
       try {
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
-        const nextRole = userData.role || JSON.parse(localStorage.getItem("hyqual_user") || "null")?.role || null;
+        if (!userDoc.exists()) {
+          revokedReason = "This account no longer exists. Please contact an administrator.";
+          localStorage.removeItem("hyqual_user");
+          await markUserOffline(currentUser.uid).catch((error) => {
+            console.error("Unable to update user presence:", error);
+          });
+          setUser(null);
+          setRole(null);
+          setBlockedReason(revokedReason);
+          await signOut(auth);
+          setLoading(false);
+          return;
+        }
+
+        const userData = userDoc.data();
+        const nextRole = userData.role || null;
 
         const reason = getAccountBlockReason(userData);
         if (reason) {

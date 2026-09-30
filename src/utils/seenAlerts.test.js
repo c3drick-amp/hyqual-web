@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getSeenAlertIds, markAlertSeen } from "./seenAlerts";
+import { getSeenAlertIds, markAlertSeen, markAlertsSeen } from "./seenAlerts";
 
 function createStorage() {
   const values = new Map();
@@ -32,5 +32,12 @@ describe("seen alert persistence", () => {
     markAlertSeen("alert-two");
     localStorage.setItem("hyqual_user", JSON.stringify({ uid: "admin-one" }));
     expect(getSeenAlertIds()).toEqual(["alert-one"]);
+  });
+
+  it("marks multiple alerts as seen without removing existing seen IDs", () => {
+    markAlertSeen("already-seen");
+    markAlertsSeen(["new-alert", "another-alert"]);
+
+    expect(getSeenAlertIds()).toEqual(["already-seen", "new-alert", "another-alert"]);
   });
 });

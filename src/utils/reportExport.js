@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { logAuditEvent } from "./auditLog";
 
 // Turns the nested report object (farms -> ponds -> parameters) into flat rows,
 // since CSV/XLSX/tables all want flat data, not nested objects.
@@ -230,4 +231,11 @@ export function exportReport(report, format) {
   if (format === "PDF") exportReportAsPDF(report);
   else if (format === "CSV") exportReportAsCSV(report);
   else if (format === "XLSX") exportReportAsXLSX(report);
+  else return;
+
+  void logAuditEvent({
+    type: "export",
+    action: "exported report",
+    detail: `${report.title} (${format})`,
+  });
 }

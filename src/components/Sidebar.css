@@ -63,6 +63,19 @@
   font-weight: 600;
 }
 
+.sidebar-alert-count {
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #0d5c46;
+  color: #fff;
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+}
+
 .sidebar-bottom {
   display: flex;
   flex-direction: column;

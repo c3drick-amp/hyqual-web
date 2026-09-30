@@ -126,8 +126,18 @@
 }
 
 .um-user-name {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-weight: 600;
   color: #111827;
+  text-align: left;
+  cursor: pointer;
+}
+
+.um-user-name:hover {
+  color: #0d5c46;
 }
 
 .um-user-email {
@@ -213,4 +223,45 @@
 .row-action-danger {
   color: #dc2626;
   border-color: #fecaca;
+}
+
+.um-profile-content {
+  padding: 28px;
+}
+
+.um-profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 28px 20px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.um-profile-heading h2 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 18px;
+}
+
+.um-profile-details {
+  margin: 8px 0 0;
+}
+
+.um-profile-details div {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px;
+}
+
+.um-profile-details dt {
+  color: #6b7280;
+}
+
+.um-profile-details dd {
+  margin: 0;
+  color: #111827;
+  overflow-wrap: anywhere;
 }

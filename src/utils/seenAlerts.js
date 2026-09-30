@@ -1,3 +1,5 @@
+export const ALERTS_SEEN_EVENT = "hyqual-alerts-seen";
+
 function getUserScope() {
   if (typeof localStorage === "undefined") return "anonymous";
 
@@ -24,9 +26,17 @@ export function getSeenAlertIds() {
 }
 
 export function markAlertSeen(alertId) {
+  markAlertsSeen([alertId]);
+}
+
+export function markAlertsSeen(alertIds) {
   if (typeof localStorage === "undefined") return;
 
   const seenIds = new Set(getSeenAlertIds());
-  seenIds.add(alertId);
+  alertIds.forEach((alertId) => seenIds.add(alertId));
   localStorage.setItem(getStorageKey(), JSON.stringify([...seenIds]));
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ALERTS_SEEN_EVENT));
+  }
 }

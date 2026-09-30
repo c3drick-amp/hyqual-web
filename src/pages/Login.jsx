@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  browserLocalPersistence,
+  inMemoryPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { logAuditEvent } from "../utils/auditLog";
+import {
+  ACTIVE_AUTH_SESSION_KEY,
+  hasRememberedSession,
+  REMEMBER_ME_KEY,
+} from "../utils/authSession";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -14,27 +24,27 @@ import logoText from "../assets/hyqual-logo-text.png";
 import "./Login.css";
 
 function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(() => hasRememberedSession());
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(location.state?.reason || "");
   const [resetEmail, setResetEmail] = useState("");
   const [resetError, setResetError] = useState("");
   const [resetMessage, setResetMessage] = useState("");
   const [isResetMode, setIsResetMode] = useState(false);
   const isSigningIn = useRef(false);
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    if (location.state?.reason) {
-      setError(location.state.reason);
-    }
-  }, [location.state]);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser && !isSigningIn.current) {
+        if (!hasRememberedSession()) {
+          await signOut(auth);
+          return;
+        }
+
         const storedUser = localStorage.getItem("hyqual_user");
         const role = JSON.parse(storedUser || "null")?.role;
         navigate(role === "Superadmin" ? "/superadmin/overview" : "/dashboard", {
@@ -52,6 +62,10 @@ function Login() {
     isSigningIn.current = true;
 
     try {
+      await setPersistence(
+        auth,
+        rememberMe ? browserLocalPersistence : inMemoryPersistence
+      );
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -64,10 +78,20 @@ function Login() {
 
       if (!userDoc.exists()) {
         setError("User profile not found.");
+        await signOut(auth);
+        isSigningIn.current = false;
         return;
       }
 
       const userData = userDoc.data();
+      await updateDoc(doc(db, "users", firebaseUser.uid), { lastSeen: serverTimestamp() });
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, "true");
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+      }
+      sessionStorage.setItem(ACTIVE_AUTH_SESSION_KEY, "true");
 
       localStorage.setItem(
         "hyqual_user",
@@ -76,6 +100,7 @@ function Login() {
           ...userData,
         })
       );
+      await logAuditEvent({ type: "signin", action: "signed in", detail: "HyQual" });
 
       if (userData.role === "Superadmin") {
         navigate("/superadmin/overview");
@@ -170,6 +195,15 @@ function Login() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
+              <label className="remember-me">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(event) => setRememberMe(event.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
 
               {error && <p className="login-error">{error}</p>}
 

@@ -103,6 +103,24 @@ form > input:first-of-type {
   padding-right: 42px;
 }
 
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.remember-me input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #0d5c46;
+}
+
 .toggle-password {
   position: absolute;
   right: 12px;

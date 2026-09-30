@@ -5,6 +5,7 @@ import SuperadminSidebar from "../../components/SuperadminSidebar";
 import Modal from "../../components/Modal";
 import { db } from "../../firebase";
 import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
+import { logAuditEvent } from "../../utils/auditLog";
 import "../Dashboard.css";
 import "./SuperadminOverview.css";
 import "./AccountApproval.css";
@@ -21,12 +22,24 @@ function AccountApproval() {
   );
 
   const handleApprove = async (id) => {
+    const account = approvals.find((item) => item.id === id);
     await updateDoc(doc(db, "approvals", id), { status: "Approved", approvedAt: new Date().toISOString() });
+    await logAuditEvent({
+      type: "account",
+      action: "approved account",
+      detail: `${account?.firstName || "User"} ${account?.lastName || ""} (${account?.role || "Unassigned role"})`.trim(),
+    });
     setSelected(null);
   };
 
   const handleReject = async (id) => {
+    const account = approvals.find((item) => item.id === id);
     await deleteDoc(doc(db, "approvals", id));
+    await logAuditEvent({
+      type: "account",
+      action: "rejected account",
+      detail: `${account?.firstName || "User"} ${account?.lastName || ""} (${account?.role || "Unassigned role"})`.trim(),
+    });
     setSelected(null);
   };
 

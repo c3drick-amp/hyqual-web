@@ -4,6 +4,9 @@ import { signOut } from "firebase/auth";
 import logoIcon from "../assets/hyqual-logo-icon.png";
 import { auth } from "../firebase";
 import { getFullName, getInitials } from "../utils/userHelpers";
+import { logAuditEvent } from "../utils/auditLog";
+import { ACTIVE_AUTH_SESSION_KEY } from "../utils/authSession";
+import { markUserOffline } from "../utils/presence";
 import "./SuperadminSidebar.css";
 
 const navItems = [
@@ -19,8 +22,13 @@ function SuperadminSidebar() {
   const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
 
   const handleSignOut = async () => {
+    await markUserOffline(auth.currentUser?.uid).catch((error) => {
+      console.error("Unable to update user presence:", error);
+    });
+    await logAuditEvent({ type: "signin", action: "signed out", detail: "HyQual" });
     await signOut(auth);
     localStorage.removeItem("hyqual_user");
+    sessionStorage.removeItem(ACTIVE_AUTH_SESSION_KEY);
     navigate("/login", { replace: true });
   };
 

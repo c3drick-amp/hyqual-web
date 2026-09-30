@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar, LogIn, FileText, UserPlus } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import DateRangeModal from "../../components/DateRangeModal";
 import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
+import { logAuditEvent } from "../../utils/auditLog";
 import "../Dashboard.css";
 import "./SuperadminOverview.css";
 import "./AuditLogs.css";
@@ -16,24 +17,74 @@ const timeFilters = [
 
 const iconByType = { signin: LogIn, export: FileText, account: UserPlus };
 
+function getLogDate(log, now) {
+  if (log.createdAt?.toDate) return log.createdAt.toDate();
+  if (log.date) {
+    const parsedDate = new Date(log.date);
+    if (!Number.isNaN(parsedDate.getTime())) return parsedDate;
+  }
+  if (Number.isFinite(log.daysAgo)) return new Date(now - log.daysAgo * 86400000);
+  return null;
+}
+
+function formatLogDate(log, now) {
+  const date = getLogDate(log, now);
+  return date ? date.toLocaleString() : log.displayTime || "Time unavailable";
+}
+
+function escapeCsv(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
 function AuditLogs() {
   const [activeTimeFilter, setActiveTimeFilter] = useState("all");
   const [showDateModal, setShowDateModal] = useState(false);
   const [customRange, setCustomRange] = useState(null);
+  const [now, setNow] = useState(0);
   const { items: auditLogs, loading, error } = useFirestoreCollection("auditLogs");
 
   const maxDays = { "24h": 1, "7d": 7, "30d": 30 };
 
+  useEffect(() => {
+    const updateClock = () => setNow(Date.now());
+    const initialUpdate = window.setTimeout(updateClock, 0);
+    const interval = window.setInterval(updateClock, 60000);
+    return () => {
+      window.clearTimeout(initialUpdate);
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const filteredLogs = auditLogs.filter((log) => {
+    const logDate = getLogDate(log, now);
     if (activeTimeFilter === "custom" && customRange) {
-      return log.date >= customRange.from && log.date <= customRange.to;
+      if (!logDate) return false;
+      const from = new Date(`${customRange.from}T00:00:00`);
+      const to = new Date(`${customRange.to}T23:59:59.999`);
+      return logDate >= from && logDate <= to;
     }
     if (activeTimeFilter === "all") return true;
-    return log.daysAgo <= maxDays[activeTimeFilter];
-  });
+    if (!logDate) return false;
+    return !now || now - logDate.getTime() <= maxDays[activeTimeFilter] * 86400000;
+  }).sort((first, second) => (getLogDate(second, now)?.getTime() || 0) - (getLogDate(first, now)?.getTime() || 0));
 
-  const handleExport = () => {
-    alert("Exporting audit log...");
+  const handleExport = async () => {
+    const columns = ["Timestamp", "Actor", "Role", "Action", "Detail"];
+    const rows = filteredLogs.map((log) => [
+      formatLogDate(log, now),
+      log.actor,
+      log.actorRole,
+      log.action,
+      log.detail,
+    ]);
+    const csv = [columns, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    const downloadUrl = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = "hyqual-activity-logs.csv";
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+    await logAuditEvent({ type: "export", action: "exported activity log", detail: `${filteredLogs.length} records` });
   };
 
   if (loading) return <p style={{ padding: 40 }}>Loading activity logs...</p>;
@@ -70,7 +121,7 @@ function AuditLogs() {
             </button>
           </div>
 
-          <button className="export-log-btn" onClick={handleExport}>
+          <button className="export-log-btn" onClick={handleExport} disabled={filteredLogs.length === 0}>
             <FileText size={14} /> Export log
           </button>
         </div>
@@ -84,10 +135,10 @@ function AuditLogs() {
                   <Icon size={16} />
                 </span>
                 <p className="al-text">
-                  <strong>{log.actor}</strong> · {log.action}{" "}
+                  <strong>{log.actor || "User"}</strong>{log.actorRole ? ` (${log.actorRole})` : ""} · {log.action}{" "}
                   <strong>{log.detail}</strong>
                 </p>
-                <span className="al-time">{log.displayTime}</span>
+                <span className="al-time">{formatLogDate(log, now)}</span>
               </div>
             );
           })}

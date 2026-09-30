@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutGrid, Activity, MapPin, AlertTriangle, BarChart2, LogOut } from "lucide-react";
 import { signOut } from "firebase/auth";
@@ -5,6 +6,11 @@ import logoIcon from "../assets/hyqual-logo-icon.png";
 import logoText from "../assets/hyqual-logo-text.png";
 import { auth } from "../firebase";
 import { getFullName, getInitials } from "../utils/userHelpers";
+import { logAuditEvent } from "../utils/auditLog";
+import { ACTIVE_AUTH_SESSION_KEY } from "../utils/authSession";
+import { markUserOffline } from "../utils/presence";
+import { useAlerts } from "../hooks/useAlerts";
+import { ALERTS_SEEN_EVENT, getSeenAlertIds, markAlertsSeen } from "../utils/seenAlerts";
 import "./Sidebar.css";
 
 const navItems = [
@@ -17,12 +23,27 @@ const navItems = [
 
 function Sidebar() {
   const navigate = useNavigate();
+  const { alerts } = useAlerts();
+  const [seenAlertIds, setSeenAlertIds] = useState(() => getSeenAlertIds());
   const storedUser = JSON.parse(localStorage.getItem("hyqual_user"));
   const currentUser = storedUser || { role: "Unknown" };
+  const unseenAlertCount = alerts.filter((alert) => !seenAlertIds.includes(alert.id)).length;
+
+  useEffect(() => {
+    const syncSeenAlerts = () => setSeenAlertIds(getSeenAlertIds());
+    window.addEventListener(ALERTS_SEEN_EVENT, syncSeenAlerts);
+
+    return () => window.removeEventListener(ALERTS_SEEN_EVENT, syncSeenAlerts);
+  }, []);
 
   const handleSignOut = async () => {
+    await markUserOffline(auth.currentUser?.uid).catch((error) => {
+      console.error("Unable to update user presence:", error);
+    });
+    await logAuditEvent({ type: "signin", action: "signed out", detail: "HyQual" });
     await signOut(auth);
     localStorage.removeItem("hyqual_user");
+    sessionStorage.removeItem(ACTIVE_AUTH_SESSION_KEY);
     navigate("/login", { replace: true });
   };
 
@@ -42,9 +63,15 @@ function Sidebar() {
               key={item.label}
               to={item.path}
               className={({ isActive }) => "nav-item" + (isActive ? " nav-item-active" : "")}
+              onClick={item.path === "/alerts" ? () => markAlertsSeen(alerts.map((alert) => alert.id)) : undefined}
             >
               <item.icon size={18} />
               <span>{item.label}</span>
+              {item.path === "/alerts" && unseenAlertCount > 0 && (
+                <span className="sidebar-alert-count" aria-label={`${unseenAlertCount} unseen alerts`}>
+                  {unseenAlertCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

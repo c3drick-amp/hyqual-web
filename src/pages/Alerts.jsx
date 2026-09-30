@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Calendar } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Modal from "../components/Modal";
 import DateRangeModal from "../components/DateRangeModal";
 import { useAlerts } from "../hooks/useAlerts";
-import { getSeenAlertIds, markAlertSeen } from "../utils/seenAlerts";
+import { markAlertSeen, markAlertsSeen } from "../utils/seenAlerts";
 import "./Alerts.css";
 
 const statusLabel = { normal: "Normal", critical: "Critical", moderate: "Moderate", offline: "Offline" };
@@ -23,7 +23,7 @@ function Alerts() {
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
   const [customRange, setCustomRange] = useState(null);
-  const [seenAlertIds, setSeenAlertIds] = useState(() => getSeenAlertIds());
+  const hasMarkedAlertsSeen = useRef(false);
   const { alerts, loading, error } = useAlerts();
 
   const maxDays = { "24h": 1, "7d": 7, "30d": 30 };
@@ -35,11 +35,15 @@ function Alerts() {
     if (activeTimeFilter === "all") return true;
     return a.daysAgo <= maxDays[activeTimeFilter];
   });
-  const unseenAlerts = filteredAlerts.filter((alert) => !seenAlertIds.includes(alert.id));
+  useEffect(() => {
+    if (loading || error || hasMarkedAlertsSeen.current) return;
+
+    hasMarkedAlertsSeen.current = true;
+    markAlertsSeen(alerts.map((alert) => alert.id));
+  }, [alerts, error, loading]);
 
   const handleAlertOpen = (alert) => {
     markAlertSeen(alert.id);
-    setSeenAlertIds((current) => current.includes(alert.id) ? current : [...current, alert.id]);
     setSelectedAlert(alert);
   };
 
@@ -82,7 +86,7 @@ function Alerts() {
             </div>
           </div>
 
-          {unseenAlerts.map((alert) => (
+          {filteredAlerts.map((alert) => (
             <div className="alert-item" key={alert.id} onClick={() => handleAlertOpen(alert)}>
               <span className="icon-box icon-box-green">
                 <AlertTriangle size={18} />
@@ -103,7 +107,7 @@ function Alerts() {
             </div>
           ))}
 
-          {unseenAlerts.length === 0 && (
+          {filteredAlerts.length === 0 && (
             <p className="al-empty">No alerts in this range.</p>
           )}
         </div>

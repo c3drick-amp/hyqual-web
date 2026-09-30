@@ -3,28 +3,43 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import {
+  browserLocalPersistence,
+  inMemoryPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
-import { getDoc } from "firebase/firestore";
+import { getDoc, updateDoc } from "firebase/firestore";
 import "@testing-library/jest-dom/vitest";
 
 import Login from "./Login";
 import ProtectedRoute from "../components/ProtectedRoute";
+import { ACTIVE_AUTH_SESSION_KEY, REMEMBER_ME_KEY } from "../utils/authSession";
 
 vi.mock("firebase/auth", () => ({
+  browserLocalPersistence: { type: "LOCAL" },
+  inMemoryPersistence: { type: "NONE" },
   onAuthStateChanged: vi.fn((auth, callback) => {
     callback(null);
     return () => {};
   }),
+  setPersistence: vi.fn(),
   signInWithEmailAndPassword: vi.fn(),
   sendPasswordResetEmail: vi.fn(),
+  signOut: vi.fn(),
 }));
 
 vi.mock("firebase/firestore", () => ({
   doc: vi.fn(),
   getDoc: vi.fn(),
+  serverTimestamp: vi.fn(() => "now"),
+  updateDoc: vi.fn(),
+}));
+
+vi.mock("../utils/auditLog", () => ({
+  logAuditEvent: vi.fn(),
 }));
 
 vi.mock("../firebase", () => ({
@@ -34,9 +49,42 @@ vi.mock("../firebase", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  sessionStorage.clear();
+  sessionStorage.setItem(ACTIVE_AUTH_SESSION_KEY, "true");
 });
 
 describe("Login page", () => {
+  test.each([
+    [false, inMemoryPersistence],
+    [true, browserLocalPersistence],
+  ])("uses %s persistence according to Remember me", async (rememberMe, persistence) => {
+    const user = userEvent.setup();
+    if (rememberMe) {
+      localStorage.setItem(REMEMBER_ME_KEY, "true");
+    }
+    signInWithEmailAndPassword.mockResolvedValue({ user: { uid: "user-123" } });
+    getDoc.mockResolvedValue({ exists: () => true, data: () => ({ role: "Farm Owner" }) });
+    updateDoc.mockResolvedValue();
+
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
+
+    const rememberMeCheckbox = screen.getByRole("checkbox", { name: /remember me/i });
+    expect(rememberMeCheckbox.checked).toBe(rememberMe);
+
+    await user.type(screen.getByLabelText(/email/i), "user@example.com");
+    await user.type(screen.getByLabelText("Password", { exact: true }), "password123");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(setPersistence).toHaveBeenCalledWith({}, persistence);
+    expect(sessionStorage.getItem(ACTIVE_AUTH_SESSION_KEY)).toBe("true");
+    expect(localStorage.getItem(REMEMBER_ME_KEY)).toBe(rememberMe ? "true" : null);
+  });
+
   test("sends a reset email when the forgot-password flow is submitted", async () => {
     const user = userEvent.setup();
     sendPasswordResetEmail.mockResolvedValue();
@@ -168,5 +216,33 @@ describe("Login page", () => {
 
     expect(await screen.findByText("Login")).toBeInTheDocument();
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+  });
+
+  test("rejects a restored user when Remember me is off", async () => {
+    sessionStorage.clear();
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback({ uid: "restored-user", email: "user@example.com" });
+      return () => {};
+    });
+    signOut.mockResolvedValue();
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <div>Dashboard</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<div>Login</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Login")).toBeInTheDocument();
+    expect(signOut).toHaveBeenCalledWith({});
   });
 });

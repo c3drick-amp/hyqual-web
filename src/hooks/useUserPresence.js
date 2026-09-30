@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { onDisconnect, onValue, ref, set } from "firebase/database";
-import { auth, rtdb } from "../firebase";
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { auth, db, rtdb } from "../firebase";
+import { markUserOffline } from "../utils/presence";
 
 export function useUserPresence(trackCurrentUser = true) {
   const [presence, setPresence] = useState({});
@@ -17,9 +19,16 @@ export function useUserPresence(trackCurrentUser = true) {
     }
 
     let unsubscribeConnection;
+    let activeUid = null;
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (activeUid && activeUid !== user?.uid) {
+        markUserOffline(activeUid).catch((error) => {
+          console.error("Unable to update user presence:", error);
+        });
+      }
       unsubscribeConnection?.();
       unsubscribeConnection = undefined;
+      activeUid = user?.uid || null;
       if (!user) return;
 
       const userPresenceRef = ref(rtdb, `presence/${user.uid}`);
@@ -34,6 +43,9 @@ export function useUserPresence(trackCurrentUser = true) {
         await set(userPresenceRef, {
           state: "online",
           lastChanged: { ".sv": "timestamp" },
+        });
+        updateDoc(doc(db, "users", user.uid), { lastSeen: serverTimestamp() }).catch((error) => {
+          console.error("Unable to update last seen:", error);
         });
       });
 
