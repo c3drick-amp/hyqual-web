@@ -13,10 +13,36 @@ service cloud.firestore {
       return signedIn() && (request.auth.uid == userId || isSuperadmin());
     }
 
+    function hasNoPasswordFields(data) {
+      return !data.keys().hasAny(['password', 'passwordHash', 'hashedPassword']);
+    }
+
+    function farmOwnedByCurrentUser(farmPath) {
+      return exists(farmPath) && (
+        get(farmPath).data.ownerId == request.auth.uid
+        || get(farmPath).data.owner_id == request.auth.uid
+        || get(farmPath).data.farmerId == request.auth.uid
+        || get(farmPath).data.farmer_id == request.auth.uid
+        || get(farmPath).data.ownerId == 'user_' + request.auth.uid
+        || get(farmPath).data.owner_id == 'user_' + request.auth.uid
+        || get(farmPath).data.farmerId == 'user_' + request.auth.uid
+        || get(farmPath).data.farmer_id == 'user_' + request.auth.uid
+      );
+    }
+
+    function ownsFarm(farmId) {
+      return signedIn() && (
+        farmOwnedByCurrentUser(/databases/$(database)/documents/farms/$(farmId))
+        || farmOwnedByCurrentUser(/databases/$(database)/documents/farms/farm_$(farmId))
+      );
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
-      allow create: if signedIn() && (request.auth.uid == userId || isSuperadmin());
-      allow update: if signedIn() && (request.auth.uid == userId || isSuperadmin());
+      allow create: if hasNoPasswordFields(request.resource.data)
+        && signedIn() && (request.auth.uid == userId || isSuperadmin());
+      allow update: if hasNoPasswordFields(request.resource.data)
+        && signedIn() && (request.auth.uid == userId || isSuperadmin());
       allow delete: if isSuperadmin();
     }
 
@@ -36,8 +62,20 @@ service cloud.firestore {
     }
 
     match /approvals/{approvalId} {
-      allow read: if signedIn();
-      allow create, update, delete: if isSuperadmin();
+      allow read: if isSuperadmin() || (signedIn() && (
+        resource.data.userId == request.auth.uid
+        || resource.data.uid == request.auth.uid
+        || approvalId == request.auth.uid
+      ));
+      allow create: if hasNoPasswordFields(request.resource.data) && (
+        isSuperadmin()
+        || (signedIn() && (
+          request.resource.data.userId == request.auth.uid
+          || request.resource.data.uid == request.auth.uid
+          || approvalId == request.auth.uid
+        ))
+      );
+      allow update, delete: if isSuperadmin();
     }
 
     match /auditLogs/{logId} {
@@ -52,7 +90,16 @@ service cloud.firestore {
 
     match /devices/{deviceId} {
       allow read: if signedIn();
-      allow create, update, delete: if isSuperadmin();
+      allow create: if isSuperadmin() || (
+        request.resource.data.farmId is string
+        && ownsFarm(request.resource.data.farmId)
+      );
+      allow update, delete: if isSuperadmin();
+    }
+
+    match /mail/{mailId} {
+      allow create: if isSuperadmin();
+      allow read, update, delete: if false;
     }
   }
 }

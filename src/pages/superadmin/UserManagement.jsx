@@ -9,22 +9,13 @@ import { useUsers } from "../../hooks/useUsers";
 import { useFarms } from "../../hooks/useFarms";
 import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
 import { useUserPresence } from "../../hooks/useUserPresence";
+import { getAccountStatus, isApprovedForManagement, normalizeReferenceId } from "../../utils/accountApproval";
 import "../Dashboard.css";
 import "./SuperadminOverview.css";
 import "./UserManagement.css";
 
 const roleOptions = ["All users", "BFAR Admin", "Farm Owner"];
-const statusOptions = ["All", "Active", "Offline", "Pending"];
-
-function getAccountStatus(user, presence, approvals) {
-  if (user.status === "Pending" || user.approvalStatus === "Pending") return "Pending";
-  if (approvals.some((approval) => approval.userId === user.id && approval.status === "Pending")) return "Pending";
-  return presence[user.id]?.state === "online" ? "Active" : "Offline";
-}
-
-function normalizeReferenceId(value) {
-  return value == null ? "" : String(value).replace("user_", "");
-}
+const statusOptions = ["All", "Active", "Offline"];
 
 function getUserFarmNames(user, farms) {
   if (user.role !== "Farm Owner") return "—";
@@ -87,6 +78,7 @@ function UserManagement() {
   const filteredUsers = users
     .filter((u) => {
       if (u.archived || u.role === "Superadmin") return false;
+      if (!isApprovedForManagement(u, approvals)) return false;
       const accountStatus = getAccountStatus(u, presence, approvals);
       if (roleFilter !== "All users" && u.role !== roleFilter) return false;
       if (statusFilter !== "All" && accountStatus !== statusFilter) return false;

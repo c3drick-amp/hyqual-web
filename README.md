@@ -1,5 +1,24 @@
 # React + Vite
 
+## Firebase integrations
+
+Device registrations written to Firestore `devices` are recorded by the
+`auditDeviceRegistration` Cloud Function. Deploy it with `firebase deploy
+--only functions` after installing the dependencies in `functions/`.
+
+Approved-account email is queued in the Firestore `mail` collection. Install
+and configure the Firebase Trigger Email extension (`firebase/firestore-send-email`)
+to deliver those messages; configure SMTP credentials in the extension, not in
+the web app.
+
+The mobile signup client should create its Firebase Authentication account and
+submit the owner's `firstName`, `middleName`, `lastName`, `farmName`, `city`,
+`barangay`, `province`, `zip`, `email`, `role`, and `userId` to `approvals`.
+Do not send or store a password hash in Firestore. Firebase Authentication
+handles password hashing and credential storage. For a device registration,
+write a `devices` document with a string `farmId` owned by the authenticated
+user and a `registeredBy` UID; new documents are audited server-side.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { X } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import Modal from "../../components/Modal";
@@ -23,11 +23,43 @@ function AccountApproval() {
 
   const handleApprove = async (id) => {
     const account = approvals.find((item) => item.id === id);
-    await updateDoc(doc(db, "approvals", id), { status: "Approved", approvedAt: new Date().toISOString() });
+    if (!account?.email) return;
+
+    const approvedAt = serverTimestamp();
+    const userId = account.userId || account.uid || id;
+    const safeProfile = {
+      firstName: account.firstName || "",
+      middleName: account.middleName || "",
+      lastName: account.lastName || "",
+      email: account.email,
+      role: account.role || "Farm Owner",
+      farmName: account.farmName || "",
+      city: account.city || "",
+      barangay: account.barangay || "",
+      province: account.province || "",
+      zip: account.zip || "",
+      phone: account.phone || "",
+      status: "Active",
+      approvalStatus: "Approved",
+      approvedAt,
+      archived: false,
+    };
+    const batch = writeBatch(db);
+    batch.update(doc(db, "approvals", id), { status: "Approved", approvedAt });
+    batch.set(doc(db, "users", userId), safeProfile, { merge: true });
+    batch.set(doc(collection(db, "mail")), {
+      to: account.email,
+      message: {
+        subject: "Your HyQual account has been approved",
+        text: `Hello ${account.firstName || "Farm Owner"}, your HyQual account has been approved. You can now sign in using the email address associated with your account.`,
+      },
+    });
+    await batch.commit();
+
     await logAuditEvent({
       type: "account",
       action: "approved account",
-      detail: `${account?.firstName || "User"} ${account?.lastName || ""} (${account?.role || "Unassigned role"})`.trim(),
+      detail: `${account.firstName || "User"} ${account.middleName || ""} ${account.lastName || ""} (${account.role || "Unassigned role"})`.trim(),
     });
     setSelected(null);
   };
@@ -81,12 +113,12 @@ function AccountApproval() {
             <div className="approval-card" key={acc.id} onClick={() => setSelected(acc)}>
               <div className="approval-card-main">
                 <div className="approval-card-top">
-                  <h3>{acc.firstName} {acc.lastName}</h3>
+                  <h3>{[acc.firstName, acc.middleName, acc.lastName].filter(Boolean).join(" ")}</h3>
                   <span className="role-pill">{acc.role}</span>
                 </div>
                 {acc.farmName && <p className="approval-farm-name">{acc.farmName}</p>}
                 <div className="approval-meta-row">
-                  <span>{acc.barangay}, {acc.city}</span>
+                  <span>{[acc.barangay, acc.city, acc.province, acc.zip].filter(Boolean).join(", ")}</span>
                   <span>{acc.email}</span>
                   <span>{acc.phone}</span>
                   <span>{acc.submittedAt}</span>
@@ -111,10 +143,10 @@ function AccountApproval() {
           <div className="approval-modal-content">
             <div className="approval-modal-header">
               <div className="approval-modal-avatar">
-                {selected.firstName[0]}{selected.lastName[0]}
+                {(selected.firstName?.[0] || "U")}{(selected.lastName?.[0] || "")}
               </div>
               <div>
-                <h2>{selected.firstName} {selected.lastName}</h2>
+                <h2>{[selected.firstName, selected.middleName, selected.lastName].filter(Boolean).join(" ")}</h2>
                 <span className="role-pill">{selected.role}</span>
               </div>
             </div>
@@ -140,7 +172,7 @@ function AccountApproval() {
             <p className="approval-section-label">CONTACT DETAILS</p>
             <div className="approval-detail-row">
               <span>Location</span>
-              <strong>{selected.barangay}, {selected.city}</strong>
+              <strong>{[selected.barangay, selected.city, selected.province, selected.zip].filter(Boolean).join(", ")}</strong>
             </div>
             <div className="approval-detail-row">
               <span>Email</span>
