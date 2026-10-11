@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Calendar, LogIn, FileText, UserPlus } from "lucide-react";
+import { Calendar, Cpu, LogIn, FileText, UserPlus } from "lucide-react";
 import SuperadminSidebar from "../../components/SuperadminSidebar";
 import DateRangeModal from "../../components/DateRangeModal";
 import { useFirestoreCollection } from "../../hooks/useFirestoreCollection";
@@ -15,7 +15,7 @@ const timeFilters = [
   { key: "30d", label: "30d" },
 ];
 
-const iconByType = { signin: LogIn, export: FileText, account: UserPlus };
+const iconByType = { signin: LogIn, export: FileText, account: UserPlus, device: Cpu };
 
 function getLogDate(log, now) {
   if (log.createdAt?.toDate) return log.createdAt.toDate();

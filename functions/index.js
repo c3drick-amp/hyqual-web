@@ -16,7 +16,7 @@ export const auditDeviceRegistration = onDocumentCreated("devices/{deviceId}", a
   const deviceName = device.deviceName || device.name || "Device";
   const farmDetail = device.farmId ? ` for farm ${device.farmId}` : "";
 
-  await db.collection("auditLogs").doc(`device-registration-${deviceId}`).set({
+  await db.collection("auditLogs").doc(`device-registration-${event.id}`).set({
     actorId: String(actorId),
     actor,
     actorRole: "Mobile app",

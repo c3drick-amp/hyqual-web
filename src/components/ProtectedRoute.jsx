@@ -6,7 +6,6 @@ import { auth, db } from "../firebase";
 import {
   ACTIVE_AUTH_SESSION_KEY,
   hasActiveAuthSession,
-  hasRememberedSession,
 } from "../utils/authSession";
 import { markUserOffline } from "../utils/presence";
 
@@ -47,7 +46,7 @@ function ProtectedRoute({ children, allowedRoles }) {
         return;
       }
 
-      if (!hasRememberedSession() && !hasActiveAuthSession()) {
+      if (!hasActiveAuthSession()) {
         sessionStorage.removeItem(ACTIVE_AUTH_SESSION_KEY);
         await signOut(auth);
         setUser(null);

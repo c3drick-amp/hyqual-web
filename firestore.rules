@@ -14,19 +14,37 @@ service cloud.firestore {
     }
 
     function hasNoPasswordFields(data) {
-      return !data.keys().hasAny(['password', 'passwordHash', 'hashedPassword']);
+      return !data.keys().hasAny([
+        'password', 'passwordHash', 'hashedPassword', 'password_hash', 'hashed_password'
+      ]);
+    }
+
+    function hasRequiredApprovalDetails(data) {
+      return data.keys().hasAll([
+        'firstName', 'middleName', 'lastName', 'farmName', 'city',
+        'barangay', 'province', 'zip', 'email'
+      ])
+        && data.firstName is string
+        && data.middleName is string
+        && data.lastName is string
+        && data.farmName is string
+        && data.city is string
+        && data.barangay is string
+        && data.province is string
+        && (data.zip is string || data.zip is int)
+        && data.email is string;
     }
 
     function farmOwnedByCurrentUser(farmPath) {
       return exists(farmPath) && (
-        get(farmPath).data.ownerId == request.auth.uid
-        || get(farmPath).data.owner_id == request.auth.uid
-        || get(farmPath).data.farmerId == request.auth.uid
-        || get(farmPath).data.farmer_id == request.auth.uid
-        || get(farmPath).data.ownerId == 'user_' + request.auth.uid
-        || get(farmPath).data.owner_id == 'user_' + request.auth.uid
-        || get(farmPath).data.farmerId == 'user_' + request.auth.uid
-        || get(farmPath).data.farmer_id == 'user_' + request.auth.uid
+        get(farmPath).data.get('ownerId', '') == request.auth.uid
+        || get(farmPath).data.get('owner_id', '') == request.auth.uid
+        || get(farmPath).data.get('farmerId', '') == request.auth.uid
+        || get(farmPath).data.get('farmer_id', '') == request.auth.uid
+        || get(farmPath).data.get('ownerId', '') == 'user_' + request.auth.uid
+        || get(farmPath).data.get('owner_id', '') == 'user_' + request.auth.uid
+        || get(farmPath).data.get('farmerId', '') == 'user_' + request.auth.uid
+        || get(farmPath).data.get('farmer_id', '') == 'user_' + request.auth.uid
       );
     }
 
@@ -39,10 +57,16 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if signedIn();
-      allow create: if hasNoPasswordFields(request.resource.data)
-        && signedIn() && (request.auth.uid == userId || isSuperadmin());
-      allow update: if hasNoPasswordFields(request.resource.data)
-        && signedIn() && (request.auth.uid == userId || isSuperadmin());
+      allow create: if hasNoPasswordFields(request.resource.data) && isSuperadmin();
+      allow update: if hasNoPasswordFields(request.resource.data) && (
+        isSuperadmin()
+        || (signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'firstName', 'middleName', 'lastName', 'mobile', 'email',
+            'street', 'barangay', 'city', 'lastSeen'
+          ]))
+      );
       allow delete: if isSuperadmin();
     }
 
@@ -63,15 +87,18 @@ service cloud.firestore {
 
     match /approvals/{approvalId} {
       allow read: if isSuperadmin() || (signedIn() && (
-        resource.data.userId == request.auth.uid
-        || resource.data.uid == request.auth.uid
+        resource.data.get('userId', '') == request.auth.uid
+        || resource.data.get('uid', '') == request.auth.uid
         || approvalId == request.auth.uid
       ));
-      allow create: if hasNoPasswordFields(request.resource.data) && (
+      allow create: if hasNoPasswordFields(request.resource.data)
+        && hasRequiredApprovalDetails(request.resource.data)
+        && request.resource.data.get('status', '') == 'Pending'
+        && (
         isSuperadmin()
         || (signedIn() && (
-          request.resource.data.userId == request.auth.uid
-          || request.resource.data.uid == request.auth.uid
+          request.resource.data.get('userId', '') == request.auth.uid
+          || request.resource.data.get('uid', '') == request.auth.uid
           || approvalId == request.auth.uid
         ))
       );

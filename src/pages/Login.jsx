@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  browserLocalPersistence,
   inMemoryPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -11,11 +10,7 @@ import {
 import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { logAuditEvent } from "../utils/auditLog";
-import {
-  ACTIVE_AUTH_SESSION_KEY,
-  hasRememberedSession,
-  REMEMBER_ME_KEY,
-} from "../utils/authSession";
+import { ACTIVE_AUTH_SESSION_KEY } from "../utils/authSession";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
@@ -28,7 +23,6 @@ function Login() {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(() => hasRememberedSession());
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(location.state?.reason || "");
   const [resetEmail, setResetEmail] = useState("");
@@ -40,11 +34,6 @@ function Login() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser && !isSigningIn.current) {
-        if (!hasRememberedSession()) {
-          await signOut(auth);
-          return;
-        }
-
         const storedUser = localStorage.getItem("hyqual_user");
         const role = JSON.parse(storedUser || "null")?.role;
         navigate(role === "Superadmin" ? "/superadmin/overview" : "/dashboard", {
@@ -62,10 +51,7 @@ function Login() {
     isSigningIn.current = true;
 
     try {
-      await setPersistence(
-        auth,
-        rememberMe ? browserLocalPersistence : inMemoryPersistence
-      );
+      await setPersistence(auth, inMemoryPersistence);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -86,11 +72,6 @@ function Login() {
       const userData = userDoc.data();
       await updateDoc(doc(db, "users", firebaseUser.uid), { lastSeen: serverTimestamp() });
 
-      if (rememberMe) {
-        localStorage.setItem(REMEMBER_ME_KEY, "true");
-      } else {
-        localStorage.removeItem(REMEMBER_ME_KEY);
-      }
       sessionStorage.setItem(ACTIVE_AUTH_SESSION_KEY, "true");
 
       localStorage.setItem(
@@ -195,15 +176,6 @@ function Login() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-
-              <label className="remember-me">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(event) => setRememberMe(event.target.checked)}
-                />
-                <span>Remember me</span>
-              </label>
 
               {error && <p className="login-error">{error}</p>}
 

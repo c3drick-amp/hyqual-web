@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import {
-  browserLocalPersistence,
   inMemoryPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -16,10 +15,9 @@ import "@testing-library/jest-dom/vitest";
 
 import Login from "./Login";
 import ProtectedRoute from "../components/ProtectedRoute";
-import { ACTIVE_AUTH_SESSION_KEY, REMEMBER_ME_KEY } from "../utils/authSession";
+import { ACTIVE_AUTH_SESSION_KEY } from "../utils/authSession";
 
 vi.mock("firebase/auth", () => ({
-  browserLocalPersistence: { type: "LOCAL" },
   inMemoryPersistence: { type: "NONE" },
   onAuthStateChanged: vi.fn((auth, callback) => {
     callback(null);
@@ -55,14 +53,8 @@ beforeEach(() => {
 });
 
 describe("Login page", () => {
-  test.each([
-    [false, inMemoryPersistence],
-    [true, browserLocalPersistence],
-  ])("uses %s persistence according to Remember me", async (rememberMe, persistence) => {
+  test("uses session-only persistence", async () => {
     const user = userEvent.setup();
-    if (rememberMe) {
-      localStorage.setItem(REMEMBER_ME_KEY, "true");
-    }
     signInWithEmailAndPassword.mockResolvedValue({ user: { uid: "user-123" } });
     getDoc.mockResolvedValue({ exists: () => true, data: () => ({ role: "Farm Owner" }) });
     updateDoc.mockResolvedValue();
@@ -73,16 +65,14 @@ describe("Login page", () => {
       </MemoryRouter>
     );
 
-    const rememberMeCheckbox = screen.getByRole("checkbox", { name: /remember me/i });
-    expect(rememberMeCheckbox.checked).toBe(rememberMe);
+    expect(screen.queryByRole("checkbox", { name: /remember me/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/email/i), "user@example.com");
     await user.type(screen.getByLabelText("Password", { exact: true }), "password123");
     await user.click(screen.getByRole("button", { name: /sign in/i }));
 
-    expect(setPersistence).toHaveBeenCalledWith({}, persistence);
+    expect(setPersistence).toHaveBeenCalledWith({}, inMemoryPersistence);
     expect(sessionStorage.getItem(ACTIVE_AUTH_SESSION_KEY)).toBe("true");
-    expect(localStorage.getItem(REMEMBER_ME_KEY)).toBe(rememberMe ? "true" : null);
   });
 
   test("sends a reset email when the forgot-password flow is submitted", async () => {
@@ -218,7 +208,7 @@ describe("Login page", () => {
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
   });
 
-  test("rejects a restored user when Remember me is off", async () => {
+  test("rejects a restored user without an active session", async () => {
     sessionStorage.clear();
     onAuthStateChanged.mockImplementation((auth, callback) => {
       callback({ uid: "restored-user", email: "user@example.com" });
